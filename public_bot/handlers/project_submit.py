@@ -1,4 +1,4 @@
-from aiogram import Router, F
+from aiogram import Router, F, types
 from aiogram.types import Message
 from aiogram.fsm.context import FSMContext
 from aiogram.types import KeyboardButton, Message, ReplyKeyboardMarkup, ReplyKeyboardRemove
@@ -18,12 +18,17 @@ from config import config
 import validators
 import json
 
-from keyboards import get_cancel_keyboard
+from keyboards import CategoryPagination, CategorySelect, get_cancel_keyboard, get_categories_keyboard
 
 
 project_submit_router = Router()
 
 redis_client = aioredis.from_url(f"redis://default:{config.redis_password.get_secret_value()}@redis:6379/0")
+
+
+ITEMS_PER_PAGE = 5
+
+FAKE_DB_CATEGORIES = [{"id": i, "name": f"📁 Категория {i}"} for i in range(1, 18)]
 
 
 async def get_user_project(session: AsyncSession, user_id: int) -> Project | None:
@@ -60,19 +65,60 @@ async def cmd_send_project(message: Message, state: FSMContext, db_session: Asyn
                                 parse_mode="HTML")
 
         else:
-            await state.set_state(ProjectSubmitState.waiting_for_name)
+            await state.set_state(ProjectSubmitState.waiting_for_general_category)
             await message.answer("<b>Отлично! Начинаем заполнять твою заявку на мясорубку!</b> 🔥\n\n" \
                                 "<b>❗️Внимание: эти данные улетят в общий пост на канале</b>, поэтому заполняй все без ошибок и так, чтобы народ реально хотел за тебя проголосовать", 
                                 parse_mode="HTML", 
                                 reply_markup=get_cancel_keyboard())
-            await message.answer("1️⃣ <b>Название проекта:</b>",
-                                parse_mode="HTML")
+
+            categories = FAKE_DB_CATEGORIES
+            
+            keyboard = get_categories_keyboard(
+                categories=categories, page=0, items_per_page=ITEMS_PER_PAGE
+            )
+            
+            await message.answer("1️⃣ <b>Выберите категорию:</b>", reply_markup=keyboard, parse_mode="HTML")
+            
     else:
         await message.answer("✋ <b>Сначала нужно пройти фейс-контроль!</b>\n\nДля этого нажми /start", parse_mode="HTML")
 
 
-@project_submit_router.message(ProjectSubmitState.waiting_for_name)
-async def process_name(message: Message, state: FSMContext):
+# 2. Обработка переключения страниц (пагинация)
+@project_submit_router.callback_query(CategoryPagination.filter())
+async def process_category_pagination(
+    callback: types.CallbackQuery, callback_data: CategoryPagination
+):
+    categories = FAKE_DB_CATEGORIES
+    target_page = callback_data.page
+
+    keyboard = get_categories_keyboard(
+        categories=categories, page=target_page, items_per_page=ITEMS_PER_PAGE
+    )
+
+    # Обновляем клавиатуру у существующего сообщения
+    await callback.message.edit_reply_markup(reply_markup=keyboard)
+    await callback.answer()
+
+
+# 3. Заглушка для неактивных кнопок (например, счетчика страниц)
+@project_submit_router.callback_query(F.data == "noop")
+async def process_noop(callback: types.CallbackQuery):
+    await callback.answer()
+
+
+# 4. Обработка клика по конкретной категории
+@project_submit_router.callback_query(CategorySelect.filter())
+async def process_category_select(
+    callback: types.CallbackQuery, callback_data: CategorySelect
+):
+    category_id = callback_data.id
+    await callback.answer(
+        f"Вы выбрали категорию с ID: {category_id}", show_alert=True
+    )
+
+
+@project_submit_router.message(ProjectSubmitState.waiting_for_general_category)
+async def process_general_category(message: Message, state: FSMContext):
 
     if message.text:
 
@@ -113,7 +159,7 @@ async def process_link(message: Message, state: FSMContext):
                                 parse_mode="HTML")
 
 
-@project_submit_router.message(ProjectSubmitState.waiting_for_desc)
+@project_submit_router.message(ProjectSubmitState.waiting_for_summary)
 async def process_desc(message: Message, state: FSMContext, db_session: AsyncSession):
 
     if message.text:
