@@ -20,12 +20,18 @@ def get_main_keyboard() -> ReplyKeyboardMarkup:
 class CategoryPagination(CallbackData, prefix="cat_page"):
     page: int
 
+class SubCategoryPagination(CallbackData, prefix="subcat_page"):
+    page: int
+
 class CategorySelect(CallbackData, prefix="cat_select"):
+    id: int
+
+class SubCategorySelect(CallbackData, prefix="subcat_select"):
     id: int
 
 
 def get_categories_keyboard(
-    categories: list[dict], page: int = 0, items_per_page: int = 5
+    categories: list[dict], page: int = 0, items_per_page: int = 5, is_subcat=False
 ) -> InlineKeyboardMarkup:
     """Генератор сетки категорий с пагинацией.
 
@@ -49,23 +55,43 @@ def get_categories_keyboard(
 
     # Добавляем кнопки категорий (каждая с новой строки)
     for cat in page_categories:
-        builder.button(
-            text=cat["name"],
-            callback_data=CategorySelect(id=cat["id"]).pack(),
-        )
+        if not is_subcat:
+            builder.button(
+                text=cat["name"],
+                callback_data=CategorySelect(id=cat["id"]).pack(),
+            )
+        else:
+            builder.button(
+                text=cat["name"],
+                callback_data=SubCategorySelect(id=cat["id"]).pack(),
+            )
     builder.adjust(1)  # по 1 кнопке в ряду для категорий
+
+    builder.row(
+        InlineKeyboardButton(
+            text="❌ Нет подходящей", callback_data="no_category_chosen"
+        )
+    )
 
     # Формируем навигационную строку
     nav_buttons = []
 
     # Кнопка «Назад»
     if page > 0:
-        nav_buttons.append(
-            InlineKeyboardButton(
-                text="⬅️ Назад",
-                callback_data=CategoryPagination(page=page - 1).pack(),
+        if not is_subcat:
+            nav_buttons.append(
+                InlineKeyboardButton(
+                    text="⬅️ Назад",
+                    callback_data=CategoryPagination(page=page - 1).pack(),
+                )
             )
-        )
+        else:
+            nav_buttons.append(
+                InlineKeyboardButton(
+                    text="⬅️ Назад",
+                    callback_data=SubCategoryPagination(page=page - 1).pack(),
+                )
+            )
     else:
         nav_buttons.append(
             InlineKeyboardButton(text="⛔️", callback_data="noop")
@@ -80,12 +106,20 @@ def get_categories_keyboard(
 
     # Кнопка «Вперед»
     if page < total_pages - 1:
-        nav_buttons.append(
-            InlineKeyboardButton(
-                text="Вперед ➡️",
-                callback_data=CategoryPagination(page=page + 1).pack(),
+        if not is_subcat:
+            nav_buttons.append(
+                InlineKeyboardButton(
+                    text="Вперед ➡️",
+                    callback_data=CategoryPagination(page=page + 1).pack(),
+                )
             )
-        )
+        else:
+            nav_buttons.append(
+                InlineKeyboardButton(
+                    text="Вперед ➡️",
+                    callback_data=SubCategoryPagination(page=page + 1).pack(),
+                )
+            )
     else:
         nav_buttons.append(
             InlineKeyboardButton(text="⛔️", callback_data="noop")
@@ -93,4 +127,17 @@ def get_categories_keyboard(
 
     builder.row(*nav_buttons)
 
+    return builder.as_markup()
+
+
+def get_yes_no_keyboard() -> InlineKeyboardMarkup:
+    builder = InlineKeyboardBuilder()
+    
+    # Добавляем кнопки с callback_data для отслеживания нажатий
+    builder.button(text="✅ Да", callback_data="confirm_yes")
+    builder.button(text="❌ Нет", callback_data="confirm_no")
+    
+    # Располагаем их в один ряд (по 2 кнопки в строке)
+    builder.adjust(2)
+    
     return builder.as_markup()

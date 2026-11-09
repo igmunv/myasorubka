@@ -31,6 +31,18 @@ async def get_subcategories_by_category(session: AsyncSession, category_id: int)
     return [dict(row) for row in result.mappings().all()]
 
 
+async def get_user_project(session: AsyncSession, user_id: int) -> Project | None:
+    """Возвращает проект пользователя или None, если проекта нет."""
+    stmt = select(Project).where(
+        Project.user_id == user_id,
+        # Если проект может быть удален/отклонен,
+        # раскомментируй проверку активного статуса:
+        # Project.status.in_(["draft", "moderation", "in_queue"])
+    )
+    result = await session.execute(stmt)
+    return result.scalar_one_or_none()
+
+
 # Прилетел новый проект
 async def create_new_project(
     session: AsyncSession, 
@@ -39,6 +51,7 @@ async def create_new_project(
     sub_category_id: int,
     name: str,
     link: str,
+    subtitle: str,
     summ: str,
     uniq: str
 ):
@@ -46,6 +59,7 @@ async def create_new_project(
     new_project = Project(
         name=name,
         link=link,
+        subtitle=subtitle,
         summ=summ,
         uniq=uniq,
         status=ProjectStatus.WAIT,
@@ -69,6 +83,7 @@ async def update_project(
     project_id: int,
     name: Optional[str] = None,
     link: Optional[str] = None,
+    subtitle: Optional[str] = None,
     summ: Optional[str] = None,
     uniq: Optional[str] = None,
     status: Optional[ProjectStatus] = None,
@@ -83,6 +98,8 @@ async def update_project(
         project.name = name
     if link is not None:
         project.link = link
+    if subtitle is not None:
+        project.subtitle = subtitle
     if summ is not None:
         project.summ = summ
     if uniq is not None:

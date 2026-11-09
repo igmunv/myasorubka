@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy import BigInteger, String, ForeignKey, DateTime, func, Text, Boolean, SQLEnum
+from sqlalchemy import BigInteger, String, ForeignKey, DateTime, func, Text, Boolean, Enum as SQLEnum
 from database.base import Base
 from typing import List
 from datetime import datetime
@@ -74,7 +74,8 @@ class Project(Base):
 
     name: Mapped[str] = mapped_column(String(32), nullable=False)
     link: Mapped[str] = mapped_column(Text, nullable=False)
-    summ: Mapped[str] = mapped_column(String(256), nullable=False)
+    subtitle: Mapped[str] = mapped_column(String(64), nullable=False)
+    summ: Mapped[str] = mapped_column(String(128), nullable=False)
     uniq: Mapped[str] = mapped_column(String(128), nullable=False)
 
     status: Mapped[ProjectStatus] = mapped_column(
