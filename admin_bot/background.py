@@ -17,7 +17,7 @@ async def start_moderation_worker(bot: Bot):
 
     while True:
         try:
-            result = await redis_client.brpop("moderation_queue", timeout=0)
+            result = await redis_client.brpop("public_admin_moder_queue", timeout=0)
             if result:
                 _, raw_data = result
                 data = json.loads(raw_data.decode("utf-8"))
@@ -57,10 +57,14 @@ async def start_moderation_worker(bot: Bot):
 
                     user_id = data["user_id"]
                     username = data["username"]
+                    project_id = data["project_id"]
                     name = data["name"]
                     link = data["link"]
-                    desc = data["desc"]
-                    project_id = data["project_id"]
+                    subtitle = data["subtitle"]
+                    summ = data["summ"]
+                    uniq = data["uniq"]
+                    cat = data["cat"]
+                    scat = data["scat"]
 
                     # Кнопки для модератора
                     kb = InlineKeyboardMarkup(inline_keyboard=[
@@ -70,16 +74,15 @@ async def start_moderation_worker(bot: Bot):
                         ]
                     ])
 
-                    user_info = f'👤 От: <a href="https://t.me/{username}">{user_id}</a>' if username else f"👤 От: неизвестно, ID - <code>{user_id}</code>"
-
                     await bot.send_message(
                         chat_id=ADMIN_CHAT_ID,
                         text=(
                             f"🆕 <b>Новый проект на мясорубку!</b>\n\n"
-                            f"{user_info}\n"
-                            f"💼 Название: {name}\n"
-                            f"🔗 Ссылка: {link}\n"
-                            f"📝 Описание: {desc}"
+                            f'🔢 <b><a href="{link}">{name} — {subtitle}</a></b>\n'
+                            f"<b>👉 Суть: </b>{summ}\n"
+                            f"<b>🔥 Почему круто: </b>{uniq}\n\n"
+                            f"📁 <b>Категория: </b>{cat}\n"
+                            f"🏷️ <b>Подкатегория: </b>{scat}\n"
                         ),
                         parse_mode="HTML",
                         reply_markup=kb

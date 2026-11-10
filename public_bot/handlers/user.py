@@ -18,9 +18,6 @@ from config import config
 
 user_router = Router()
 
-redis_client = aioredis.from_url(f"redis://default:{config.redis_password.get_secret_value()}@redis:6379/0")
-
-
 @user_router.message(CommandStart())
 async def cmd_start(message: Message, state: FSMContext, db_session: AsyncSession):
 

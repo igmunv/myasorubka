@@ -121,7 +121,7 @@ async def process_about(message: Message, state: FSMContext, db_session: AsyncSe
                 "portfolio": user_data["portfolio"],
                 "about": about
             })
-            await redis_client.lpush("moderation_queue", payload)
+            await redis_client.lpush("public_admin_moder_queue", payload)
 
             await message.answer("⏳ <b>Отправлено на модерацию</b>\n\n" \
                                 "Проверяем профиль. После проверки — сможешь скинуть свой проект на мясорубку!",

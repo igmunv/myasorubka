@@ -4,7 +4,7 @@ import redis.asyncio as aioredis
 from aiogram import Bot
 from sqlalchemy.ext.asyncio import AsyncSession
 from database.base import async_session_maker
-from database.models import User, Project
+from database.models import User, Project, ProjectStatus
 from config import config
 from aiogram.types import KeyboardButton, Message, ReplyKeyboardMarkup
 
@@ -20,7 +20,7 @@ async def start_notification_worker(bot: Bot):
 
     while True:
         try:
-            result = await redis_client.brpop("admin_decisions_queue", timeout=0)
+            result = await redis_client.brpop("admin_public_moder_queue", timeout=0)
             if result:
                 _, raw_data = result
                 data = json.loads(raw_data.decode("utf-8"))
@@ -50,18 +50,23 @@ async def start_notification_worker(bot: Bot):
 
                 if _type == "project_submit":
 
+                    print("project_submit")
+
                     user_id = data["user_id"]
                     decision = data["decision"]
                     reason = data["reason"]
                     project_id = data["project_id"]
 
                     async with async_session_maker() as session:
+                        print("await session.get(Project, project_id)")
                         project = await session.get(Project, project_id)
                         if project:
 
+                            print("if project")
+
                             if decision == "approved":
-                                project.is_verified = True if decision == "approved" else False
-                                project.is_checked = True
+                                print("approved")
+                                project.status = ProjectStatus.READY if decision == "approved" else ProjectStatus.FAIL
                                 await session.commit()
 
                             else:

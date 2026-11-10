@@ -56,7 +56,7 @@ async def process_reg_moderation_callback(callback: CallbackQuery, state: FSMCon
             "decision": decision,
             "reason": ""
         })
-        await redis_client.lpush("admin_decisions_queue", payload)
+        await redis_client.lpush("admin_public_moder_queue", payload)
 
         status_text = "✅ Одобрено" if decision == "approved" else "❌ Отклонено"
         await callback.message.edit_text(f"{callback.message.text}\n\n<b>Статус: {status_text}</b>", parse_mode="HTML")
@@ -97,7 +97,7 @@ async def process_reg_reason(message: Message, state: FSMContext):
                 "decision": "rejected",
                 "reason": reason
             })
-            await redis_client.lpush("admin_decisions_queue", payload)
+            await redis_client.lpush("admin_public_moder_queue", payload)
 
             await message.bot.edit_message_text(
                 text=f"{msg_text}\n\n<b>Статус: ❌ Отклонено</b>",
@@ -113,8 +113,9 @@ async def process_reg_reason(message: Message, state: FSMContext):
 
 @admin_router.callback_query(F.data.startswith("mod_project_submit_"))
 async def process_projsub_moderation_callback(callback: CallbackQuery, state: FSMContext):
-    action, user_id_str, project_id = callback.data.split(":")
+    action, user_id_str, project_id_str = callback.data.split(":")
     user_id = int(user_id_str)
+    project_id = int(project_id_str)
     
     decision = "approved" if action == "mod_project_submit_approve" else "rejected"
 
@@ -127,7 +128,7 @@ async def process_projsub_moderation_callback(callback: CallbackQuery, state: FS
             "decision": decision,
             "reason": ""
         })
-        await redis_client.lpush("admin_decisions_queue", payload)
+        await redis_client.lpush("admin_public_moder_queue", payload)
 
         status_text = "✅ Одобрено" if decision == "approved" else "❌ Отклонено"
         await callback.message.edit_text(f"{callback.message.text}\n\n<b>Статус: {status_text}</b>", parse_mode="HTML")
@@ -170,7 +171,7 @@ async def process_projsub_reason(message: Message, state: FSMContext):
                 "decision": "rejected",
                 "reason": reason
             })
-            await redis_client.lpush("admin_decisions_queue", payload)
+            await redis_client.lpush("admin_public_moder_queue", payload)
 
             await message.bot.edit_message_text(
                 text=f"{msg_text}\n\n<b>Статус: ❌ Отклонено</b>",

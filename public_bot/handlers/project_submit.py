@@ -53,8 +53,14 @@ async def cmd_send_project(message: Message, state: FSMContext, db_session: Asyn
         project = await get_user_project(db_session, user_id=message.from_user.id)
 
         if project:
-            await message.answer("⚠️ <b>Твой проект уже в очереди!</b>\n\nНаберись терпения - скоро он отправится на Мясорубку 🕘",
-                                parse_mode="HTML")
+
+            if project.status == ProjectStatus.READY:
+                await message.answer("🕘 <b>Твой проект уже в очереди!</b>\n\nНаберись терпения - скоро он отправится на Мясорубку",
+                                    parse_mode="HTML")
+
+            elif project.status == ProjectStatus.WAIT:
+                await message.answer("⛔️ <b>Твой проект на модерации!</b>",
+                                    parse_mode="HTML")
 
         else:
             await state.set_state(ProjectSubmitState.waiting_for_category)
@@ -69,7 +75,7 @@ async def cmd_send_project(message: Message, state: FSMContext, db_session: Asyn
                 categories=categories, page=0, items_per_page=ITEMS_PER_PAGE
             )
             
-            await message.answer("1️⃣ <b>Выберите категорию:</b>", reply_markup=keyboard, parse_mode="HTML")
+            await message.answer("1️⃣ <b>Выбери категорию:</b>", reply_markup=keyboard, parse_mode="HTML")
             
     else:
         await message.answer("✋ <b>Сначала нужно пройти фейс-контроль!</b>\n\nДля этого нажми /start", parse_mode="HTML")
@@ -130,7 +136,7 @@ async def process_no_category(callback: types.CallbackQuery, state: FSMContext):
 
     await callback.message.delete()
     await callback.message.answer(
-        "Вы выбрали вариант «Нет подходящей категории». Можете отправить запрос на добавление новой категории ему: @igmunv", reply_markup=get_main_keyboard()
+        "Выбран вариант «Нет подходящей категории». Можешь отправить запрос на добавление новой категории ему: @igmunv", reply_markup=get_main_keyboard()
     )
     await callback.answer()
 
@@ -146,7 +152,7 @@ async def process_category_select(
     await state.update_data(category_id=category_id, category_name=category.name)
     await state.set_state(ProjectSubmitState.waiting_for_category_confirm)
 
-    await callback.message.edit_text(f'🤔 <b>Вы выбрали категорию "{category.name}"</b>:\n\n{category.desc}\n\n<b>Всё верно?</b>', 
+    await callback.message.edit_text(f'🤔 <b>Выбрана категория "{category.name}"</b>:\n\n{category.desc}\n\n<b>Всё верно?</b>', 
                          reply_markup=get_yes_no_keyboard(), parse_mode="HTML")
     await callback.answer()
 
@@ -169,7 +175,7 @@ async def process_yes_category_confirm(callback: types.CallbackQuery, state: FSM
         categories=subcategories, page=0, items_per_page=ITEMS_PER_PAGE, is_subcat=True
     )
     
-    await callback.message.answer("2️⃣ <b>Выберите подкатегорию:</b>", reply_markup=keyboard, parse_mode="HTML")
+    await callback.message.answer("2️⃣ <b>Выбери подкатегорию:</b>", reply_markup=keyboard, parse_mode="HTML")
 
 
 @project_submit_router.callback_query(ProjectSubmitState.waiting_for_category_confirm, F.data == "confirm_no")
@@ -183,7 +189,7 @@ async def process_no_category_confirm(callback: types.CallbackQuery, state: FSMC
         categories=categories, page=0, items_per_page=ITEMS_PER_PAGE
     )
             
-    await callback.message.edit_text("🔁 <b>Выберите категорию еще раз:</b>", reply_markup=keyboard, parse_mode="HTML")
+    await callback.message.edit_text("🔁 <b>Выбери категорию еще раз:</b>", reply_markup=keyboard, parse_mode="HTML")
     await callback.answer()
 
 
@@ -197,7 +203,7 @@ async def process_sub_category_select(
     await state.update_data(sub_category_id=sub_category_id, sub_category_name=sub_category.name)
     await state.set_state(ProjectSubmitState.waiting_for_sub_category_confirm)
 
-    await callback.message.edit_text(f'🤔 <b>Вы выбрали подкатегорию "{sub_category.name}"</b>:\n\n{sub_category.desc}\n\n<b>Всё верно?</b>', 
+    await callback.message.edit_text(f'🤔 <b>Выбрана подкатегория "{sub_category.name}"</b>:\n\n{sub_category.desc}\n\n<b>Всё верно?</b>', 
                          reply_markup=get_yes_no_keyboard(), parse_mode="HTML")
     await callback.answer()
 
@@ -232,7 +238,7 @@ async def process_no_sub_category_confirm(callback: types.CallbackQuery, state: 
         categories=subcategories, page=0, items_per_page=ITEMS_PER_PAGE, is_subcat=True
     )
             
-    await callback.message.edit_text("🔁 <b>Выберите подкатегорию еще раз:</b>", reply_markup=keyboard, parse_mode="HTML")
+    await callback.message.edit_text("🔁 <b>Выбери подкатегорию еще раз:</b>", reply_markup=keyboard, parse_mode="HTML")
     await callback.answer()
     
 
@@ -340,7 +346,7 @@ async def process_uniq(message: Message, state: FSMContext, db_session: AsyncSes
                                 parse_mode="HTML")
         elif len(uniq) < 15:
             await message.answer("❗️ <b>Слишком коротко (минимум 15 символов)</b>\n\n" \
-                                "Расскажи о крутости проекта чуть подробнее. Не забывай: это увидят подписчики\n\n" \
+                                "Расскажи о причине крутости проекта чуть подробнее. Не забывай: это увидят подписчики\n\n" \
                                 "Попробуй ещё раз:",
                                 parse_mode="HTML")
         else:
@@ -390,7 +396,7 @@ async def process_uniq(message: Message, state: FSMContext, db_session: AsyncSes
                 "cat": cat,
                 "scat": scat
             })
-            await redis_client.lpush("moderation_queue", payload)
+            await redis_client.lpush("public_admin_moder_queue", payload)
 
             await message.answer("⏳ <b>Проект и заявка отправлены на модерацию</b>\n\n",
                                 parse_mode="HTML",
