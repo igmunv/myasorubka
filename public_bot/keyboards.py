@@ -141,3 +141,12 @@ def get_yes_no_keyboard() -> InlineKeyboardMarkup:
     builder.adjust(2)
     
     return builder.as_markup()
+
+
+def get_go_keyboard() -> InlineKeyboardMarkup:
+    builder = InlineKeyboardBuilder()
+    
+    # Добавляем кнопки с callback_data для отслеживания нажатий
+    builder.button(text="Погнали!", callback_data="go")
+    
+    return builder.as_markup()

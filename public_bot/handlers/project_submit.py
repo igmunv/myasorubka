@@ -21,7 +21,7 @@ import validators
 import json
 
 from keyboards import CategoryPagination, SubCategoryPagination, CategorySelect, SubCategorySelect
-from keyboards import get_cancel_keyboard, get_categories_keyboard, get_yes_no_keyboard, get_main_keyboard
+from keyboards import get_cancel_keyboard, get_categories_keyboard, get_yes_no_keyboard, get_main_keyboard, get_go_keyboard
 
 
 project_submit_router = Router()
@@ -64,22 +64,31 @@ async def cmd_send_project(message: Message, state: FSMContext, db_session: Asyn
                                     parse_mode="HTML")
 
         else:
-            await state.set_state(ProjectSubmitState.waiting_for_category)
-            await message.answer("<b>Отлично! Начинаем заполнять твою заявку на мясорубку!</b> 🔥\n\n" \
-                                "<b>❗️Внимание: эти данные улетят в общий пост на канале</b>, поэтому заполняй все без ошибок и так, чтобы народ реально хотел за тебя проголосовать", 
+            await state.set_state(ProjectSubmitState.waiting_for_start)
+            await message.answer("<b>Отлично! Начинаем заполнять твою заявку на мясорубку!</b> 🔥",
                                 parse_mode="HTML", 
                                 reply_markup=get_cancel_keyboard())
 
-            categories = await get_all_categories(session=db_session);
-            
-            keyboard = get_categories_keyboard(
-                categories=categories, page=0, items_per_page=ITEMS_PER_PAGE
-            )
-            
-            await message.answer("1️⃣ <b>Выбери категорию:</b>", reply_markup=keyboard, parse_mode="HTML")
+            await message.answer("<b>❗️Внимание: эти данные улетят в общий пост на канале</b>, поэтому заполняй всё без ошибок и так, чтобы народ реально хотел за тебя проголосовать", 
+                                parse_mode="HTML", 
+                                reply_markup=get_go_keyboard())
             
     else:
         await message.answer("✋ <b>Сначала нужно пройти фейс-контроль!</b>\n\nДля этого нажми /start", parse_mode="HTML")
+
+
+@project_submit_router.callback_query(ProjectSubmitState.waiting_for_start, F.data == "go")
+async def process_go(callback: types.CallbackQuery, state: FSMContext, db_session: AsyncSession):
+    await state.set_state(ProjectSubmitState.waiting_for_category)
+
+    categories = await get_all_categories(session=db_session);
+                
+    keyboard = get_categories_keyboard(
+        categories=categories, page=0, items_per_page=ITEMS_PER_PAGE
+    )
+    
+    await callback.message.answer("1️⃣ <b>Выбери категорию:</b>", reply_markup=keyboard, parse_mode="HTML")
+    await callback.answer()
 
 
 # 2. Обработка переключения страниц (пагинация)

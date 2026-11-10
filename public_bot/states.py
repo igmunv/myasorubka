@@ -6,6 +6,7 @@ class FaceControlState(StatesGroup):
     waiting_for_about = State()
 
 class ProjectSubmitState(StatesGroup):
+    waiting_for_start = State()
     waiting_for_category = State()
     waiting_for_category_confirm = State()
     waiting_for_sub_category = State()
