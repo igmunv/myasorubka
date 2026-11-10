@@ -5,6 +5,7 @@ import redis.asyncio as aioredis
 
 from aiogram import Bot
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+import html
 
 from config import config
 
@@ -78,14 +79,15 @@ async def start_moderation_worker(bot: Bot):
                         chat_id=ADMIN_CHAT_ID,
                         text=(
                             f"🆕 <b>Новый проект на мясорубку!</b>\n\n"
-                            f'🔢 <b><a href="{link}">{name} — {subtitle}</a></b>\n'
-                            f"<b>👉 Суть: </b>{summ}\n"
-                            f"<b>🔥 Почему круто: </b>{uniq}\n\n"
-                            f"📁 <b>Категория: </b>{cat}\n"
-                            f"🏷️ <b>Подкатегория: </b>{scat}\n"
+                            f'🔢 <b><a href="{html.escape(link)}">{html.escape(name)} — {html.escape(subtitle)}</a></b>\n'
+                            f"<b>👉 Суть: </b>{html.escape(summ)}\n"
+                            f"<b>🔥 Почему круто: </b>{html.escape(uniq)}\n\n"
+                            f"📁 <b>Категория: </b>{html.escape(cat)}\n"
+                            f"🏷️ <b>Подкатегория: </b>{html.escape(scat)}\n"
                         ),
                         parse_mode="HTML",
-                        reply_markup=kb
+                        reply_markup=kb, 
+                        disable_web_page_preview=True
                     )
 
 

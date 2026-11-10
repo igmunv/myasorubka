@@ -15,3 +15,4 @@ class ProjectSubmitState(StatesGroup):
     waiting_for_subtitle = State()
     waiting_for_summary = State()
     waiting_for_uniq = State()
+    waiting_for_check = State()

@@ -3,6 +3,7 @@ from aiogram.types import Message
 from aiogram.fsm.context import FSMContext
 from aiogram.types import KeyboardButton, Message, ReplyKeyboardMarkup, ReplyKeyboardRemove
 from aiogram.filters import StateFilter
+import html
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -350,11 +351,35 @@ async def process_uniq(message: Message, state: FSMContext, db_session: AsyncSes
                                 "Попробуй ещё раз:",
                                 parse_mode="HTML")
         else:
+
+            await state.update_data(uniq=uniq)
+            await state.set_state(ProjectSubmitState.waiting_for_check)
+
             user_data = await state.get_data()
             name = user_data["name"]
             link = user_data["link"]
             subtitle = user_data["subtitle"]
             summ = user_data["summ"]
+            uniq = user_data["uniq"]
+
+            await message.answer(
+                                f"Проект в батле будет выглядеть вот так:\n\n"
+                                f'🔢 <b><a href="{html.escape(link)}">{html.escape(name)} — {html.escape(subtitle)}</a></b>\n'
+                                f"<b>👉 Суть: </b>{html.escape(summ)}\n"
+                                f"<b>🔥 Почему круто: </b>{html.escape(uniq)}\n\n"
+                                f"🔍 Проверь, всё верно?",
+                                parse_mode="HTML", disable_web_page_preview=True, reply_markup=get_yes_no_keyboard())
+
+
+@project_submit_router.callback_query(ProjectSubmitState.waiting_for_check, F.data == "confirm_yes")
+async def process_yes_check_confirm(callback: types.CallbackQuery, state: FSMContext, db_session: AsyncSession):
+
+            user_data = await state.get_data()
+            name = user_data["name"]
+            link = user_data["link"]
+            subtitle = user_data["subtitle"]
+            summ = user_data["summ"]
+            uniq = user_data["uniq"]
 
             cat_id = user_data["category_id"]
             scat_id = user_data["sub_category_id"]
@@ -373,7 +398,7 @@ async def process_uniq(message: Message, state: FSMContext, db_session: AsyncSes
                 status=ProjectStatus.WAIT,
                 category_id=cat_id,
                 sub_category_id=scat_id,
-                user_id=message.from_user.id
+                user_id=callback.from_user.id
             )
             db_session.add(project)
 
@@ -385,8 +410,8 @@ async def process_uniq(message: Message, state: FSMContext, db_session: AsyncSes
             
             payload = json.dumps({
                 "_type": "project_submit",
-                "user_id": message.from_user.id,
-                "username": message.from_user.username,
+                "user_id": callback.from_user.id,
+                "username": callback.from_user.username,
                 "project_id": project_id,
                 "name": name,
                 "link": link,
@@ -398,7 +423,21 @@ async def process_uniq(message: Message, state: FSMContext, db_session: AsyncSes
             })
             await redis_client.lpush("public_admin_moder_queue", payload)
 
-            await message.answer("⏳ <b>Проект и заявка отправлены на модерацию</b>\n\n",
+            await callback.message.delete()
+
+            await callback.message.answer("⏳ <b>Проект и заявка отправлены на модерацию</b>\n\n",
                                 parse_mode="HTML",
                                 reply_markup=get_main_keyboard())
 
+
+
+@project_submit_router.callback_query(ProjectSubmitState.waiting_for_check, F.data == "confirm_no")
+async def process_no_check_confirm(callback: types.CallbackQuery, state: FSMContext, db_session: AsyncSession):
+
+    await callback.message.edit_text("🔁 <b>Давай попробуем ещё раз</b>\n\n",
+                                    parse_mode="HTML")
+
+    await state.set_state(ProjectSubmitState.waiting_for_name)
+    
+    await callback.message.answer("3️⃣ <b>Название проекта:</b>",
+                                parse_mode="HTML", reply_markup=get_cancel_keyboard())

@@ -11,6 +11,8 @@ class ProjectStatus(str, enum.Enum):
     READY = "ready"
     RECHECK = "recheck"
     FAIL = "fail"
+    ON_BATTLE = "on_battle"
+    POST_BATTLE = "post_battle"
 
 
 class User(Base):
