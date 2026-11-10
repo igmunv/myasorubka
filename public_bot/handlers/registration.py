@@ -10,7 +10,7 @@ import json
 
 from states import FaceControlState
 
-from database.models import User
+from database.models import User, UserStatus
 
 import redis.asyncio as aioredis
 
@@ -102,13 +102,15 @@ async def process_about(message: Message, state: FSMContext, db_session: AsyncSe
                 user.name = name
                 user.portfolio = portfolio
                 user.about = about
+                user.status = UserStatus.WAIT
 
             else:
                 user = User(
                     id=message.from_user.id,
                     name=name,
                     portfolio=portfolio,
-                    about=about
+                    about=about,
+                    status=UserStatus.WAIT
                 )
                 db_session.add(user)
 

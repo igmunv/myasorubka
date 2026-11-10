@@ -10,7 +10,7 @@ from keyboards import get_cancel_keyboard, get_main_keyboard
 
 from states import FaceControlState
 
-from database.models import User
+from database.models import User, UserStatus
 
 import redis.asyncio as aioredis
 
@@ -47,7 +47,7 @@ async def cmd_start(message: Message, state: FSMContext, db_session: AsyncSessio
         
     else:
 
-        if not user.is_verified and user.is_checked:
+        if user.status == UserStatus.FAIL:
             await message.answer(
                 "🔄 <b>Давай попробуем пройти фейс-контроль ещё раз</b>",
                 parse_mode="HTML", 
@@ -61,10 +61,10 @@ async def cmd_start(message: Message, state: FSMContext, db_session: AsyncSessio
                 parse_mode="HTML"
                 )
             
-        elif user.is_verified:
+        elif user.status == UserStatus.READY:
             await message.answer(f"С возвращением, {user.name}!", reply_markup=get_main_keyboard())
 
-        else:
+        elif user.status == UserStatus.WAIT:
             await message.answer(f"С возвращением, {user.name}! Ждём решения модераторов...")
 
 

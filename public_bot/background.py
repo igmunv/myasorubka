@@ -4,10 +4,11 @@ import redis.asyncio as aioredis
 from aiogram import Bot
 from sqlalchemy.ext.asyncio import AsyncSession
 from database.base import async_session_maker
-from database.models import User, Project, ProjectStatus
+from database.models import User, Project, ProjectStatus, UserStatus
 from config import config
 from aiogram.types import KeyboardButton, Message, ReplyKeyboardMarkup
 
+import html
 from datetime import datetime, timedelta
 
 from sqlalchemy import select, func
@@ -37,8 +38,7 @@ async def start_notification_worker(bot: Bot):
                     async with async_session_maker() as session:
                         user = await session.get(User, user_id)
                         if user:
-                            user.is_verified = True if decision == "approved" else False
-                            user.is_checked = True
+                            user.status = UserStatus.READY if decision == "approved" else UserStatus.FAIL
                             await session.commit()
 
                     # Шлем сообщение пользователю
@@ -50,28 +50,19 @@ async def start_notification_worker(bot: Bot):
 
                 if _type == "project_submit":
 
-                    print("project_submit")
-
                     user_id = data["user_id"]
                     decision = data["decision"]
                     reason = data["reason"]
                     project_id = data["project_id"]
 
                     async with async_session_maker() as session:
-                        print("await session.get(Project, project_id)")
                         project = await session.get(Project, project_id)
                         if project:
-
-                            print("if project")
-
                             if decision == "approved":
-                                print("approved")
-                                project.status = ProjectStatus.READY if decision == "approved" else ProjectStatus.FAIL
-                                await session.commit()
-
+                                project.status = ProjectStatus.READY
                             else:
                                 await session.delete(project)
-                                await session.commit()
+                            await session.commit()
 
                     if decision == "approved":
 
@@ -92,7 +83,7 @@ async def start_notification_worker(bot: Bot):
                                                 reply_markup=get_main_keyboard())
                         
                     else:
-                        await bot.send_message(user_id, f"❌ К сожалению, проект на мясорубку не принят:\n\n<blockquote>{reason}</blockquote>\n\nПопробуй отправить ещё раз", 
+                        await bot.send_message(user_id, f"❌ К сожалению, проект на мясорубку не принят:\n\n<blockquote>{html.escape(reason)}</blockquote>\n\nПопробуй отправить ещё раз", 
                                                parse_mode="HTML",
                                                reply_markup=get_main_keyboard())
 
@@ -102,55 +93,3 @@ async def start_notification_worker(bot: Bot):
         except Exception as e:
             print(f"Ошибка в воркере уведомлений: {e}")
             await asyncio.sleep(3)
-
-
-def get_battle_date(queue_number: int) -> datetime:
-    today = datetime.now()
-    
-    # 1. Считаем, сколько полных батлов перед этим проектом (0 - текущий, 1 - следующий и т.д.)
-    # Если queue_number от 1 до 3, то weeks_offset = 0
-    weeks_offset = max(0, (queue_number - 1) // 3)
-    
-    # 2. Ищем ближайшее воскресенье (в Python понедельник = 0, воскресенье = 6)
-    days_until_sunday = (6 - today.weekday()) % 7
-    
-    # Если сегодня воскресенье, но батл уже идет/прошел, можно решить, считать ли сегодня за день батла. 
-    # Обычно если сегодня ВСК, то проекты текущего батла уже стартовали.
-    if days_until_sunday == 0 and today.hour >= 12:  # например, после старта в 12:00
-        # Если сегодня уже воскресенье вечер, то "следующее воскресенье" для текущей тройки — это сегодня, 
-        # но для #4 это уже след. воскресенье. 
-        pass
-
-    next_sunday = today + timedelta(days=days_until_sunday)
-    
-    # Сбрасываем время на 12:00 (время старта батла)
-    next_sunday = next_sunday.replace(hour=12, minute=0, second=0, microsecond=0)
-    
-    # Если сегодня воскресенье, но до 12:00, то ближайшее воскресенье — это сегодня. 
-    # Если после 12:00, то для тех, кто попал в текущий батл (weeks_offset == 0), это «сегодня/уже идет», 
-    # а для остальных — считаем от следующей недели.
-    if days_until_sunday == 0 and today.hour < 12:
-        target_date = next_sunday + timedelta(weeks=weeks_offset)
-    else:
-        # Если сегодня не воскресенье, считаем от ближайшего воскресенья
-        target_date = next_sunday + timedelta(weeks=weeks_offset)
-        
-    return target_date
-
-
-async def get_project_queue_number(session, target_project_id: int) -> int | None:
-    subq = (
-        select(
-            Project.id,
-            func.row_number()
-            .over(order_by=Project.created_at.asc())  
-            .label("queue_number")
-        )
-        .where(Project.is_verified == True)  
-        .subquery()
-    )
-
-    stmt = select(subq.c.queue_number).where(subq.c.id == target_project_id)
-    
-    result = await session.execute(stmt)
-    return result.scalar_one_or_none()

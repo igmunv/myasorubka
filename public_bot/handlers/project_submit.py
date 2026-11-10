@@ -10,7 +10,7 @@ from sqlalchemy import select
 
 from states import ProjectSubmitState
 
-from database.models import User, Project, Category, SubCategory, ProjectStatus
+from database.models import User, Project, Category, SubCategory, ProjectStatus, UserStatus
 from database.requests import get_user_project, get_all_categories, get_subcategories_by_category
 
 import redis.asyncio as aioredis
@@ -48,7 +48,7 @@ async def cmd_cancel(message: Message, state: FSMContext):
 async def cmd_send_project(message: Message, state: FSMContext, db_session: AsyncSession):
     user = await db_session.get(User, message.from_user.id)
     
-    if user and user.is_verified:
+    if user and user.status == UserStatus.READY:
 
         # проверка на то что чел уже скинул проект
         project = await get_user_project(db_session, user_id=message.from_user.id)

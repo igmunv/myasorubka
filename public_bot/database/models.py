@@ -7,12 +7,20 @@ import enum
 
 
 class ProjectStatus(str, enum.Enum):
-    WAIT = "wait"
-    READY = "ready"
-    RECHECK = "recheck"
-    FAIL = "fail"
-    ON_BATTLE = "on_battle"
-    POST_BATTLE = "post_battle"
+    WAIT = "wait" # ожидает проверки
+    READY = "ready" # проверен, ожидает батл
+    # RECHECK = "recheck" # отправлен на повторную проверку
+    FAIL = "fail" # не прошел проверку
+    ON_BATTLE = "on_battle" # сейчас на батле
+    POST_BATTLE = "post_battle" # уже был на батле
+
+
+class UserStatus(str, enum.Enum):
+    NEW = "new" # новичок, не зарегался
+    WAIT = "wait" # ожидает проверки
+    FAIL = "fail" # не прошел проверку
+    READY = "ready" # проверен, может кидать преокты
+    # RECHECK = "recheck" # отправлен на повторную проверку
 
 
 class User(Base):
@@ -23,8 +31,11 @@ class User(Base):
     portfolio: Mapped[str] = mapped_column(Text)
     about: Mapped[str] = mapped_column(String(256))
 
-    is_verified: Mapped[bool] = mapped_column(Boolean, default=False)
-    is_checked: Mapped[bool] = mapped_column(Boolean, default=False)
+    status: Mapped[UserStatus] = mapped_column(
+        SQLEnum(UserStatus), 
+        default=UserStatus.NEW, 
+        nullable=False
+    )
 
     created_at: Mapped[DateTime] = mapped_column(DateTime, server_default=func.now())
 

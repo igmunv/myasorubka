@@ -51,7 +51,8 @@ async def start_moderation_worker(bot: Bot):
                             f"🆔 ID: <code>{user_id}</code>"
                         ),
                         parse_mode="HTML",
-                        reply_markup=kb
+                        reply_markup=kb, 
+                        disable_web_page_preview=True
                     )
 
                 elif _type == "project_submit":
