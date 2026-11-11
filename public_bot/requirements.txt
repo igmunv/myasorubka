@@ -7,3 +7,5 @@ aiosqlite
 sqlalchemy[asyncio]
 validators
 asyncpg
+psycopg2-binary
+alembic
