@@ -11,7 +11,7 @@ class ProjectStatus(str, enum.Enum):
     WAIT = "wait" # ожидает проверки
     READY = "ready" # проверен, ожидает батл
     # RECHECK = "recheck" # отправлен на повторную проверку
-    FAIL = "fail" # не прошел проверку
+    FAIL = "fail" # не прошел проверку - сейчас не используется, так как удаляется
     ON_BATTLE = "on_battle" # сейчас на батле
     POST_BATTLE = "post_battle" # уже был на батле
 

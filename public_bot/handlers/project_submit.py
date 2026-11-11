@@ -8,7 +8,7 @@ import html
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
-from states import ProjectSubmitState
+from states import ProjectSubmitState, RegistrationState
 
 from database.models import User, Project, Category, SubCategory, ProjectStatus, UserStatus
 from database.requests import get_user_project, get_all_categories, get_subcategories_by_category
@@ -44,11 +44,11 @@ async def cmd_cancel(message: Message, state: FSMContext):
                         reply_markup=get_main_keyboard())
 
 
-@project_submit_router.message(StateFilter(None), F.text == "📁 Отправить проект")
+@project_submit_router.message(StateFilter(None), F.text == "🚀 Отправить проект")
 async def cmd_send_project(message: Message, state: FSMContext, db_session: AsyncSession):
     user = await db_session.get(User, message.from_user.id)
     
-    if user and user.status == UserStatus.READY:
+    if user.status == UserStatus.READY:
 
         # проверка на то что чел уже скинул проект
         project = await get_user_project(db_session, user_id=message.from_user.id)
@@ -72,9 +72,41 @@ async def cmd_send_project(message: Message, state: FSMContext, db_session: Asyn
             await message.answer("<b>❗️Внимание: эти данные улетят в общий пост на канале</b>, поэтому заполняй всё без ошибок и так, чтобы народ реально хотел за тебя проголосовать", 
                                 parse_mode="HTML", 
                                 reply_markup=get_go_keyboard())
-            
-    else:
-        await message.answer("✋ <b>Сначала нужно пройти фейс-контроль!</b>\n\nДля этого нажми /start", parse_mode="HTML")
+
+    elif user.status == UserStatus.WAIT:
+        await message.answer(
+            "🕘 <b>Ожидай решения модераторов по фейс-контролю</b>",
+            parse_mode="HTML"
+            )
+
+    elif user.status == UserStatus.FAIL:
+        await message.answer(
+            "🔄 <b>Давай попробуем пройти фейс-контроль ещё раз</b>",
+            parse_mode="HTML",
+            reply_markup=get_cancel_keyboard()
+            )
+        
+        await state.set_state(RegistrationState.waiting_for_name)
+
+        await message.answer(
+            "1️⃣ <b>Твоё имя или никнейм:</b>",
+            parse_mode="HTML"
+            )
+    
+    else:   
+        await message.answer(
+            "✋ <b>Чтобы получить доступ к отправке проектов, пройди короткий фейс-контроль (регистрацию)</b>\n\n"
+            "Мы держим планку комьюнити, а если твой проект победит — <b>твоё портфолио уйдёт в отдельный рекламный пост на весь канал!</b>",
+            parse_mode="HTML",
+            reply_markup=get_cancel_keyboard()
+            )
+        
+        await state.set_state(RegistrationState.waiting_for_name)
+
+        await message.answer(
+            "1️⃣ <b>Твоё имя или никнейм:</b>",
+            parse_mode="HTML"
+            )
 
 
 @project_submit_router.callback_query(ProjectSubmitState.waiting_for_start, F.data == "go")
@@ -396,8 +428,6 @@ async def process_yes_check_confirm(callback: types.CallbackQuery, state: FSMCon
             cat = user_data["category_name"]
             scat = user_data["sub_category_name"]
 
-            await state.clear()
-
             project = Project(
                 name=name,
                 link=link,
@@ -412,6 +442,8 @@ async def process_yes_check_confirm(callback: types.CallbackQuery, state: FSMCon
             db_session.add(project)
 
             await db_session.commit()
+
+            await state.clear()
 
             await db_session.refresh(project)
 

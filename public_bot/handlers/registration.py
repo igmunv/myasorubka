@@ -1,18 +1,21 @@
-from aiogram import Router, F
+from aiogram import Router, F, types
 from aiogram.types import Message
 from aiogram.fsm.context import FSMContext
 from aiogram.types import KeyboardButton, Message, ReplyKeyboardMarkup, ReplyKeyboardRemove
+from aiogram.filters import StateFilter
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
 import validators
 import json
 
-from states import FaceControlState
+from states import RegistrationState
 
 from database.models import User, UserStatus
 
 import redis.asyncio as aioredis
+
+from keyboards import get_main_keyboard, get_cancel_keyboard
 
 from config import config
 
@@ -22,15 +25,29 @@ registration_router = Router()
 redis_client = aioredis.from_url(f"redis://default:{config.redis_password.get_secret_value()}@redis:6379/0")
 
 
-@registration_router.message(FaceControlState(), F.text == "❌ Отмена")
+@registration_router.message(RegistrationState(), F.text == "❌ Отмена")
 async def cmd_cancel(message: Message, state: FSMContext):
     await state.clear()
-    await message.answer("🙅‍♂️ <b>Регистрация отменена</b>\n\nОтправь /start, чтобы начать заново", 
+    await message.answer("🙅‍♂️ <b>Регистрация отменена</b>", 
                         parse_mode="HTML",
-                        reply_markup=ReplyKeyboardRemove())
+                        reply_markup=get_main_keyboard())
 
 
-@registration_router.message(FaceControlState.waiting_for_name)
+@registration_router.callback_query(StateFilter(None), F.data == "retry_registration")
+async def process_retry_registration(callback: types.CallbackQuery, state: FSMContext, db_session: AsyncSession):
+    
+    await state.set_state(RegistrationState.waiting_for_name)
+
+    await callback.message.answer(
+        "1️⃣ <b>Твоё имя или никнейм:</b>",
+        parse_mode="HTML",
+        reply_markup=get_cancel_keyboard()
+        )
+
+    await callback.answer()
+
+
+@registration_router.message(RegistrationState.waiting_for_name)
 async def process_name(message: Message, state: FSMContext):
 
     if message.text:
@@ -45,7 +62,7 @@ async def process_name(message: Message, state: FSMContext):
                                 parse_mode="HTML")
         else:
             await state.update_data(name=name)
-            await state.set_state(FaceControlState.waiting_for_portfolio)
+            await state.set_state(RegistrationState.waiting_for_portfolio)
             await message.answer("2️⃣ <b>Ссылка на портфолио (GitHub, сайт или резюме):</b>",
                                 parse_mode="HTML")
 
@@ -54,7 +71,7 @@ async def process_name(message: Message, state: FSMContext):
                             parse_mode="HTML")
 
 
-@registration_router.message(FaceControlState.waiting_for_portfolio)
+@registration_router.message(RegistrationState.waiting_for_portfolio)
 async def process_portfolio(message: Message, state: FSMContext):
 
     if message.text:
@@ -63,16 +80,18 @@ async def process_portfolio(message: Message, state: FSMContext):
     
         if validators.url(url):
             await state.update_data(portfolio=url)
-            await state.set_state(FaceControlState.waiting_for_about)
+            await state.set_state(RegistrationState.waiting_for_about)
             await message.answer("3️⃣ <b>Пару слов о себе (опыт, чем занимаешься, стек):</b>",
                                             parse_mode="HTML")
 
         else:
             await message.answer("❗️ <b>Это не ссылка</b>\n\nПопробуй ещё раз:",
                                 parse_mode="HTML")
+    else:
+        await message.answer("❗️ <b>Не увидел ссылку</b>\n\nПопробуй отправить ещё раз:",
+                            parse_mode="HTML")
 
-
-@registration_router.message(FaceControlState.waiting_for_about)
+@registration_router.message(RegistrationState.waiting_for_about)
 async def process_about(message: Message, state: FSMContext, db_session: AsyncSession):
 
     if message.text:
@@ -128,4 +147,8 @@ async def process_about(message: Message, state: FSMContext, db_session: AsyncSe
             await message.answer("⏳ <b>Отправлено на модерацию</b>\n\n" \
                                 "Проверяем профиль. После проверки — сможешь скинуть свой проект на мясорубку!",
                                 parse_mode="HTML",
-                                reply_markup=ReplyKeyboardRemove())
+                                reply_markup=get_main_keyboard())
+
+    else:
+        await message.answer("❗️ <b>Не увидел текст</b>\n\nПопробуй ввести ещё раз:",
+                            parse_mode="HTML")

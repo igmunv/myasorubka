@@ -12,7 +12,14 @@ def get_cancel_keyboard() -> ReplyKeyboardMarkup:
 
 def get_main_keyboard() -> ReplyKeyboardMarkup:
     builder = ReplyKeyboardBuilder()
-    builder.button(text="📁 Отправить проект")
+    
+    builder.button(text="🚀 Отправить проект")
+    
+    builder.button(text="🏆 Зал славы")
+    builder.button(text="👤 Профиль")
+    
+    builder.adjust(1, 2)
+    
     return builder.as_markup(resize_keyboard=True, one_time_keyboard=False)
 
 # да, ИИ, и что бля? работает же
@@ -148,5 +155,13 @@ def get_go_keyboard() -> InlineKeyboardMarkup:
     
     # Добавляем кнопки с callback_data для отслеживания нажатий
     builder.button(text="Погнали!", callback_data="go")
+    
+    return builder.as_markup()
+
+def get_retry_registration_keyboard() -> InlineKeyboardMarkup:
+    builder = InlineKeyboardBuilder()
+    
+    # Добавляем кнопки с callback_data для отслеживания нажатий
+    builder.button(text="🔄 Попробовать еще раз", callback_data="retry_registration")
     
     return builder.as_markup()

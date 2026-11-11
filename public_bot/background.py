@@ -13,7 +13,7 @@ from datetime import datetime, timedelta
 
 from sqlalchemy import select, func
 
-from keyboards import get_main_keyboard
+from keyboards import get_main_keyboard, get_retry_registration_keyboard
 
 async def start_notification_worker(bot: Bot):
     redis_client = aioredis.from_url(f"redis://default:{config.redis_password.get_secret_value()}@redis:6379/0")
@@ -46,7 +46,9 @@ async def start_notification_worker(bot: Bot):
 
                         await bot.send_message(user_id, "🛂 Фейс-контроль пройден!\n\nТеперь ты можешь отправлять свои проекты на мясорубку 📁🥩", reply_markup=get_main_keyboard())
                     else:
-                        await bot.send_message(user_id, f"❌ К сожалению, фейс-контроль не пройден:\n\n<blockquote>{reason}</blockquote>\n\nПопробуй ещё раз отправив сюда /start", parse_mode="HTML")
+                        await bot.send_message(user_id, f"❌ К сожалению, фейс-контроль не пройден:\n\n<blockquote>{reason}</blockquote>", 
+                                               parse_mode="HTML",
+                                               reply_markup=get_retry_registration_keyboard())
 
                 if _type == "project_submit":
 

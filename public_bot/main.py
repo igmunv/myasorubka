@@ -10,11 +10,11 @@ from database.base import init_db, async_session_maker
 
 from database.init_categories import sync_categories as sync_db_cats
 
-from handlers.user import user_router
+from handlers.general import general_router
 from handlers.registration import registration_router
 from handlers.project_submit import project_submit_router
 
-from middlewares.db import DbSessionMiddleware
+from middlewares.db import DbSessionMiddleware, RegisterUserMiddleware
 
 from config import config
 
@@ -41,10 +41,11 @@ async def main():
     dp = Dispatcher(storage=storage)
 
     dp.update.middleware(DbSessionMiddleware())
+    dp.update.middleware(RegisterUserMiddleware())
 
     dp.include_router(registration_router)
     dp.include_router(project_submit_router)
-    dp.include_router(user_router)
+    dp.include_router(general_router)
 
     asyncio.create_task(start_notification_worker(bot))
 
