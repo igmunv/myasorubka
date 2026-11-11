@@ -7,6 +7,7 @@ from aiogram.types import KeyboardButton, Message, ReplyKeyboardMarkup, ReplyKey
 from typing import Callable, Dict, Any, Awaitable
 
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select, func
 
 import asyncio
 import redis.asyncio as aioredis
@@ -15,6 +16,8 @@ import json
 from states import RegRejectedState, ProjSubmitRejectState
 
 from config import config
+
+from public_bot_db.models import User
 
 admin_router = Router()
 
@@ -38,7 +41,12 @@ async def check_user_id_middleware(
 
 @admin_router.message(CommandStart())
 async def cmd_start(message: Message, state: FSMContext, db_mmyaso_session: AsyncSession, db_submeat_session: AsyncSession):
-    await message.answer("💚 Я жив")
+
+    user_count = await db_submeat_session.scalar(
+        select(func.count()).select_from(User)
+    )
+
+    await message.answer(f"💚 Я жив\n\nКоличество пользователей: {user_count}")
 
 
 @admin_router.callback_query(F.data.startswith("mod_registration_"))
