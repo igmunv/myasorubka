@@ -178,7 +178,8 @@ async def process_projsub_reason(message: Message, state: FSMContext):
                 chat_id=chat_id,
                 message_id=msg_id,
                 reply_markup=None, 
-                parse_mode="HTML"
+                parse_mode="HTML", 
+                disable_web_page_preview=True
             )
             await message.answer("✅ <b>Принято</b>", parse_mode="HTML")
 

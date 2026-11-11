@@ -23,7 +23,9 @@ async def main():
         key_builder=DefaultKeyBuilder(with_bot_id=True)
     )
 
-    session = AiohttpSession(proxy="socks5://unrybJ:MS5PGU@193.254.235.133:9551")
+    proxy_url = config.proxy_url.get_secret_value() if config.proxy_url else None
+    
+    session = AiohttpSession(proxy=proxy_url) if proxy_url else None
     bot = Bot(token=config.admin_bot_token.get_secret_value(), session=session)
     dp = Dispatcher(storage=storage)
 

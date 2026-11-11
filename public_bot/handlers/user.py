@@ -27,6 +27,17 @@ async def cmd_start(message: Message, state: FSMContext, db_session: AsyncSessio
 
     if not user:
 
+        user = User(
+            id=message.from_user.id,
+            name=None,
+            portfolio=None,
+            about=None,
+            status=UserStatus.NEW
+        )
+        db_session.add(user)
+
+        await db_session.commit()
+
         await message.answer(
             "Привет! Я собираю проекты на еженедельную <b>мясорубку</b>🥩\n\nА дальше всё решает комьюнити: люди в канале голосуют за лучший проект, и выигрывает реально сильнейший!",
             parse_mode="HTML"
@@ -61,7 +72,7 @@ async def cmd_start(message: Message, state: FSMContext, db_session: AsyncSessio
                 parse_mode="HTML"
                 )
             
-        elif user.status == UserStatus.READY:
+        elif user.status == UserStatus.READY or user.status == UserStatus.NEW:
             await message.answer(f"С возвращением, {user.name}!", reply_markup=get_main_keyboard())
 
         elif user.status == UserStatus.WAIT:

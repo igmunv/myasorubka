@@ -4,6 +4,7 @@ from database.base import Base
 from typing import List
 from datetime import datetime
 import enum
+from typing import Optional
 
 
 class ProjectStatus(str, enum.Enum):
@@ -27,17 +28,17 @@ class User(Base):
     __tablename__ = "users"
 
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True) # Telegram ID
-    name: Mapped[str] = mapped_column(String(32))
-    portfolio: Mapped[str] = mapped_column(Text)
-    about: Mapped[str] = mapped_column(String(256))
+    name: Mapped[Optional[str]] = mapped_column(String(32), nullable=True)
+    portfolio: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    about: Mapped[Optional[str]] = mapped_column(String(256), nullable=True)
 
     status: Mapped[UserStatus] = mapped_column(
-        SQLEnum(UserStatus), 
-        default=UserStatus.NEW, 
+        SQLEnum(UserStatus),
+        default=UserStatus.NEW,
         nullable=False
     )
 
-    created_at: Mapped[DateTime] = mapped_column(DateTime, server_default=func.now())
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
 
     projects: Mapped[list["Project"]] = relationship(
         back_populates="user", cascade="all, delete-orphan"
@@ -47,7 +48,7 @@ class User(Base):
 class Category(Base):
     __tablename__ = "categories"
 
-    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    id: Mapped[int] = mapped_column(primary_key=True)
 
     name: Mapped[str] = mapped_column(String(32), nullable=False)
     desc: Mapped[str] = mapped_column(String(256), nullable=False)
@@ -64,7 +65,7 @@ class Category(Base):
 class SubCategory(Base):
     __tablename__ = "sub_categories"
 
-    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    id: Mapped[int] = mapped_column(primary_key=True)
 
     name: Mapped[str] = mapped_column(String(32), nullable=False)
     desc: Mapped[str] = mapped_column(String(256), nullable=False)

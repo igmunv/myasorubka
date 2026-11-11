@@ -1,5 +1,6 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic import SecretStr
+from typing import Optional
 
 class Settings(BaseSettings):
 
@@ -17,5 +18,7 @@ class Settings(BaseSettings):
         env_file='.env',
         env_file_encoding='utf-8'
     )
+
+    proxy_url: Optional[SecretStr] = None
 
 config = Settings()
