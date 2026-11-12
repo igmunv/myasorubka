@@ -9,7 +9,7 @@ from states import RegistrationState
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from keyboards import get_cancel_keyboard, get_main_keyboard, get_profile_keyboard
+from keyboards import send_cancel_keyboard, get_main_keyboard, get_profile_keyboard, get_go_keyboard, get_registration_button
 
 from database.models import User, UserStatus
 
@@ -45,8 +45,8 @@ async def cmd_profile(message: Message, state: FSMContext, db_session: AsyncSess
                             f"Данные, которые ты вводил:\n\n"
                             f"👤 <b>Имя:</b> {html.escape(user.name)}\n"
                             f"💬 <b>О себе:</b> {html.escape(user.about)}\n"
-                            f'🔗 <b>Ссылка:</b>{html.escape(user.portfolio)}', 
-                            reply_markup=get_profile_keyboard(),
+                            f'🔗 <b>Ссылка:</b> {html.escape(user.portfolio)}', 
+                            reply_markup=get_profile_keyboard(is_regstr=False),
                             parse_mode="HTML",
                             disable_web_page_preview=True
                         )
@@ -73,31 +73,27 @@ async def cmd_profile(message: Message, state: FSMContext, db_session: AsyncSess
                     )
 
 
-@profile_router.callback_query(StateFilter(None), F.data == "profile_registr")
-async def process_butt_profile_registr_or_change(callback: types.CallbackQuery, state: FSMContext, db_session: AsyncSession):
-
+@profile_router.callback_query(StateFilter(None), F.data == "profile_edit")
+async def process_butt_profile_edit(callback: types.CallbackQuery, state: FSMContext, db_session: AsyncSession):
     user = await db_session.get(User, callback.from_user.id)
 
-    if user.status == UserStatus.READY:
+    if user.status == UserStatus.NEW:
         await callback.message.answer(
-            "⚠️ <b>Регистрация уже пройдена!</b>",
-            parse_mode="HTML"
-        )
-
-    elif user.status == UserStatus.WAIT:
-        await callback.message.answer(
-            "🕘 <b>Ожидай решения модераторов</b>",
-            parse_mode="HTML"
-        )
-        
-    else:
-    
-        await state.set_state(RegistrationState.waiting_for_name)
-
-        await callback.message.answer(
-            "1️⃣ <b>Твоё имя или никнейм:</b>",
+            "⚠️ <b>Сначала нужно зарегистрироваться!</b>",
             parse_mode="HTML",
-            reply_markup=get_cancel_keyboard()
-            )
+            reply_markup=get_registration_button()
+        )
+
+    else:
+
+        await state.set_state(RegistrationState.waiting_for_start)
+
+        await send_cancel_keyboard(callback.message)
+        
+        await callback.message.answer(
+            "🔥 <b>Если твой проект победит — этот профиль улетит в отдельный пост на весь канал!</b> Заполняй сразу красиво и без ошибок, чтобы забрать максимум трафика",
+            parse_mode="HTML",
+            reply_markup=get_go_keyboard()
+        )
 
     await callback.answer()

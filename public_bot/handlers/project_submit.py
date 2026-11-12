@@ -8,7 +8,7 @@ import html
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
-from states import ProjectSubmitState, RegistrationState
+from states import ProjectSubmitState
 
 from database.models import User, Project, Category, SubCategory, ProjectStatus, UserStatus
 from database.requests import get_user_project, get_all_categories, get_subcategories_by_category
@@ -21,7 +21,7 @@ import validators
 import json
 
 from keyboards import CategoryPagination, SubCategoryPagination, CategorySelect, SubCategorySelect
-from keyboards import get_cancel_keyboard, get_categories_keyboard, get_yes_no_keyboard, get_main_keyboard, get_go_keyboard
+from keyboards import get_cancel_keyboard, get_categories_keyboard, get_yes_no_keyboard, get_main_keyboard, get_go_keyboard, get_registration_button
 
 
 project_submit_router = Router()
@@ -80,33 +80,20 @@ async def cmd_send_project(message: Message, state: FSMContext, db_session: Asyn
             )
 
     elif user.status == UserStatus.FAIL:
-        await message.answer(
-            "🔄 <b>Давай попробуем пройти фейс-контроль ещё раз</b>",
-            parse_mode="HTML",
-            reply_markup=get_cancel_keyboard()
-            )
-        
-        await state.set_state(RegistrationState.waiting_for_name)
 
         await message.answer(
-            "1️⃣ <b>Твоё имя или никнейм:</b>",
-            parse_mode="HTML"
-            )
-    
-    else:   
-        await message.answer(
-            "✋ <b>Чтобы получить доступ к отправке проектов, пройди короткий фейс-контроль (регистрацию)</b>\n\n"
-            "Мы держим планку комьюнити, а если твой проект победит — <b>твоё портфолио уйдёт в отдельный рекламный пост на весь канал!</b>",
+            "🔄 <b>Давай попробуем пройти фейс-контроль ещё раз?</b>\n\n",
             parse_mode="HTML",
-            reply_markup=get_cancel_keyboard()
+            reply_markup=get_registration_button()
             )
         
-        await state.set_state(RegistrationState.waiting_for_name)
-
+    else:
+        
         await message.answer(
-            "1️⃣ <b>Твоё имя или никнейм:</b>",
-            parse_mode="HTML"
-            )
+            "✋ <b>Чтобы получить доступ к отправке проектов, пройди короткий фейс-контроль (регистрацию)</b>\n\n",
+            parse_mode="HTML",
+            reply_markup=get_registration_button()
+        )
 
 
 @project_submit_router.callback_query(ProjectSubmitState.waiting_for_start, F.data == "go")

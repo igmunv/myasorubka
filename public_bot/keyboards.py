@@ -170,10 +170,23 @@ def get_profile_keyboard(is_regstr=True) -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
 
     if is_regstr:
-        builder.button(text="✏️ Редактировать", callback_data="profile_change")
+        builder.button(text="✏️ Редактировать", callback_data="profile_edit")
         builder.button(text="📁 Мои Проекты", callback_data="profile_projects")
         builder.adjust(2)
     else:
         builder.button(text="➕ Регистрация", callback_data="profile_registr")
     
     return builder.as_markup()
+
+def get_registration_button() -> InlineKeyboardMarkup:
+    builder = InlineKeyboardBuilder()
+    builder.button(text="➕ Регистрация", callback_data="profile_registr")
+    return builder.as_markup()
+
+
+async def send_cancel_keyboard(message):
+    await message.answer(
+        "В любой момент можно прерваться, нажав:\n<b>«❌ Отмена»</b>",
+        parse_mode="HTML",
+        reply_markup=get_cancel_keyboard()
+    )
