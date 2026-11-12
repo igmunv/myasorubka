@@ -34,13 +34,6 @@ async def start_notification_worker(bot: Bot):
                     decision = data["decision"]
                     reason = data["reason"]
 
-                    # Обновляем статус в базе данных
-                    async with async_session_maker() as session:
-                        user = await session.get(User, user_id)
-                        if user:
-                            user.status = UserStatus.READY if decision == "approved" else UserStatus.FAIL
-                            await session.commit()
-
                     # Шлем сообщение пользователю
                     if decision == "approved":
 
@@ -57,14 +50,7 @@ async def start_notification_worker(bot: Bot):
                     reason = data["reason"]
                     project_id = data["project_id"]
 
-                    async with async_session_maker() as session:
-                        project = await session.get(Project, project_id)
-                        if project:
-                            if decision == "approved":
-                                project.status = ProjectStatus.READY
-                            else:
-                                await session.delete(project)
-                            await session.commit()
+                    
 
                     if decision == "approved":
 

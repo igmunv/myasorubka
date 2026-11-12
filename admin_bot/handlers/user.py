@@ -17,7 +17,7 @@ from states import RegRejectedState, ProjSubmitRejectState
 
 from config import config
 
-from public_bot_db.models import User
+from public_bot_db.models import User, UserStatus, Project, ProjectStatus
 
 from database.requests import create_moderation_record
 
@@ -42,9 +42,9 @@ async def check_user_id_middleware(
 
 
 @admin_router.message(CommandStart())
-async def cmd_start(message: Message, state: FSMContext, db_mmyaso_session: AsyncSession, db_submeat_session: AsyncSession):
+async def cmd_start(message: Message, state: FSMContext, db_session: AsyncSession, db_public_session: AsyncSession):
 
-    user_count = await db_submeat_session.scalar(
+    user_count = await db_public_session.scalar(
         select(func.count()).select_from(User)
     )
 
@@ -52,11 +52,17 @@ async def cmd_start(message: Message, state: FSMContext, db_mmyaso_session: Asyn
 
 
 @admin_router.callback_query(F.data.startswith("mod_registration_"))
-async def process_reg_moderation_callback(callback: CallbackQuery, state: FSMContext):
+async def process_reg_moderation_callback(callback: CallbackQuery, state: FSMContext, db_public_session: AsyncSession):
     action, user_id_str = callback.data.split(":")
     user_id = int(user_id_str)
     
     decision = "approved" if action == "mod_registration_approve" else "rejected"
+
+    # Обновляем статус в базе данных
+    user = await db_public_session.get(User, user_id)
+    if user:
+        user.status = UserStatus.READY if decision == "approved" else UserStatus.FAIL
+        await db_public_session.commit()
 
     if decision == "approved":
     
@@ -124,12 +130,20 @@ async def process_reg_reason(message: Message, state: FSMContext, db_session: As
 
 
 @admin_router.callback_query(F.data.startswith("mod_project_submit_"))
-async def process_projsub_moderation_callback(callback: CallbackQuery, state: FSMContext):
+async def process_projsub_moderation_callback(callback: CallbackQuery, state: FSMContext, db_session: AsyncSession):
     action, user_id_str, project_id_str = callback.data.split(":")
     user_id = int(user_id_str)
     project_id = int(project_id_str)
     
     decision = "approved" if action == "mod_project_submit_approve" else "rejected"
+
+    project = await db_session.get(Project, project_id)
+    if project:
+        if decision == "approved":
+            project.status = ProjectStatus.READY
+        else:
+            await db_session.delete(project)
+        await db_session.commit()
 
     if decision == "approved":
 

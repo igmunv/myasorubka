@@ -67,27 +67,48 @@ async def process_butt_profile_registr(callback: types.CallbackQuery, state: FSM
 
 @registration_router.callback_query(RegistrationState.waiting_for_start, F.data == "go")
 async def process_go_reg_or_edit(callback: types.CallbackQuery, state: FSMContext, db_session: AsyncSession):
-    await state.set_state(RegistrationState.waiting_for_name)
-    
-    await callback.message.edit_text(
-        "1️⃣ <b>Твоё имя или никнейм:</b>",
-        parse_mode="HTML"
+
+    user = await db_session.get(User, callback.from_user.id)
+
+    if user.status == UserStatus.WAIT:
+        await callback.message.answer(
+            "⏳ <b>Профиль находится на проверке!</b>\n\nДождись решения модератора. Пока профиль проверяется, вносить изменения нельзя",
+            parse_mode="HTML"
         )
 
-    await callback.answer()
+    else:
+
+        await state.set_state(RegistrationState.waiting_for_name)
+        
+        await callback.message.edit_text(
+            "1️⃣ <b>Твоё имя или никнейм:</b>",
+            parse_mode="HTML"
+            )
+
+        await callback.answer()
 
 
 @registration_router.callback_query(StateFilter(None), F.data == "retry_registration")
 async def process_retry_registration(callback: types.CallbackQuery, state: FSMContext, db_session: AsyncSession):
+
+    user = await db_session.get(User, callback.from_user.id)
     
-    await state.set_state(RegistrationState.waiting_for_name)
-
-    await send_cancel_keyboard(callback.message)
-
-    await callback.message.answer(
-        "1️⃣ <b>Твоё имя или никнейм:</b>",
-        parse_mode="HTML"
+    if user.status == UserStatus.WAIT:
+        await callback.message.answer(
+            "🕘 <b>Ожидай решения модераторов</b>",
+            parse_mode="HTML"
         )
+
+    else:
+    
+        await state.set_state(RegistrationState.waiting_for_name)
+
+        await send_cancel_keyboard(callback.message)
+
+        await callback.message.answer(
+            "1️⃣ <b>Твоё имя или никнейм:</b>",
+            parse_mode="HTML"
+            )
 
     await callback.answer()
 

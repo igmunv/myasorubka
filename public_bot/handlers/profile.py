@@ -9,7 +9,7 @@ from states import RegistrationState
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from keyboards import send_cancel_keyboard, get_main_keyboard, get_profile_keyboard, get_go_keyboard, get_registration_button
+from keyboards import send_cancel_keyboard, get_main_keyboard, get_profile_keyboard, get_go_keyboard, get_registration_button, get_retry_registration_keyboard
 
 from database.models import User, UserStatus
 
@@ -32,13 +32,10 @@ async def cmd_profile(message: Message, state: FSMContext, db_session: AsyncSess
         await message.answer(f"👤 Сначала нужно зарегистрироваться", 
                              reply_markup=get_profile_keyboard(is_regstr=False)
                             )
-        return
 
     elif user.status == UserStatus.FAIL:
-        moder_status = " (<i>модерация не пройдена ❌</i>)"
         record = await db_session.get(RegistrationModeration, message.from_user.id)
-
-        await message.answer(f"👤 <b>Твой профиль {moder_status}:</b>\n\n"
+        await message.answer(f"👤 <b>Твой профиль (<i>модерация не пройдена ❌</i>):</b>\n\n"
                             f"Для участия в батлах, необходимо <b>обязательно пройти регистрацию</b>. "
                             f"Посмотри причину неудачной проверки, и попробуй решить её:\n\n"
                             f"<blockquote>{record.reason}</blockquote>\n\n"
@@ -46,31 +43,37 @@ async def cmd_profile(message: Message, state: FSMContext, db_session: AsyncSess
                             f"👤 <b>Имя:</b> {html.escape(user.name)}\n"
                             f"💬 <b>О себе:</b> {html.escape(user.about)}\n"
                             f'🔗 <b>Ссылка:</b> {html.escape(user.portfolio)}', 
-                            reply_markup=get_profile_keyboard(is_regstr=False),
+                            reply_markup=get_retry_registration_keyboard(),
                             parse_mode="HTML",
                             disable_web_page_preview=True
                         )
-
-        return
         
     elif user.status == UserStatus.WAIT:
-        moder_status = " (<i>на модерации 🕘</i>)"
+        await message.answer(f"👤 <b>Твой профиль (<i>на модерации 🕘</i>):</b>\n\n"
+                                f"Так будет выглядеть твоя карточка в канале, если ты выиграешь батл 👇\n\n"
+                                f"<blockquote>🏛 <b>Зал славы: Название твоего проекта</b>\n\n"
+                                f"Здесь будет описание твоего проекта и причина его крутости...\n\n"
+                                f"🥇 <b>Победитель:</b> {html.escape(user.name)}\n"
+                                f"💬 <b>О себе:</b> {html.escape(user.about)}\n"
+                                f'<b><a href="{html.escape(user.portfolio)}">🔗 Найти меня можно здесь</a></b></blockquote>\n\n'
+                                f"💡 Пока профиль не прошел модерацию, его нельзя редактировать", 
+                                parse_mode="HTML",
+                                disable_web_page_preview=True
+                            )
 
     elif user.status == UserStatus.READY:
-        moder_status = " (<i>проверено ✅</i>)"
-        
-    await message.answer(f"👤 <b>Твой профиль {moder_status}:</b>\n\n"
-                        f"Так будет выглядеть твоя карточка в канале, если ты выиграешь батл 👇\n\n"
-                        f"<blockquote>🏛 <b>Зал славы: Название твоего проекта</b>\n\n"
-                        f"Здесь будет описание твоего проекта и причина его крутости...\n\n"
-                        f"🥇 <b>Победитель:</b> {html.escape(user.name)}\n"
-                        f"💬 <b>О себе:</b> {html.escape(user.about)}\n"
-                        f'<b><a href="{html.escape(user.portfolio)}">🔗 Найти меня можно здесь</a></b></blockquote>\n\n'
-                        f"💡 Хочешь что-то поправить или посмотреть свои проекты? Жми кнопки ниже", 
-                        reply_markup=get_profile_keyboard(),
-                        parse_mode="HTML",
-                        disable_web_page_preview=True
-                    )
+        await message.answer(f"👤 <b>Твой профиль (<i>проверено ✅</i>):</b>\n\n"
+                            f"Так будет выглядеть твоя карточка в канале, если ты выиграешь батл 👇\n\n"
+                            f"<blockquote>🏛 <b>Зал славы: Название твоего проекта</b>\n\n"
+                            f"Здесь будет описание твоего проекта и причина его крутости...\n\n"
+                            f"🥇 <b>Победитель:</b> {html.escape(user.name)}\n"
+                            f"💬 <b>О себе:</b> {html.escape(user.about)}\n"
+                            f'<b><a href="{html.escape(user.portfolio)}">🔗 Найти меня можно здесь</a></b></blockquote>\n\n'
+                            f"💡 Хочешь что-то поправить или посмотреть свои проекты? Жми кнопки ниже", 
+                            reply_markup=get_profile_keyboard(),
+                            parse_mode="HTML",
+                            disable_web_page_preview=True
+                        )
 
 
 @profile_router.callback_query(StateFilter(None), F.data == "profile_edit")
@@ -82,6 +85,12 @@ async def process_butt_profile_edit(callback: types.CallbackQuery, state: FSMCon
             "⚠️ <b>Сначала нужно зарегистрироваться!</b>",
             parse_mode="HTML",
             reply_markup=get_registration_button()
+        )
+
+    elif user.status == UserStatus.WAIT:
+        await callback.message.answer(
+            "⏳ <b>Профиль находится на проверке!</b>\n\nДождись решения модератора. Пока профиль проверяется, вносить изменения нельзя",
+            parse_mode="HTML"
         )
 
     else:
