@@ -48,6 +48,7 @@ services:
       - .env
     volumes:
       - ./public_bot:/app/bot
+      - ./admin_bot/database:/app/bot/admin_bot_db
     depends_on:
       redis:
         condition: service_healthy

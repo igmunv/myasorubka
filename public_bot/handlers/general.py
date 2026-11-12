@@ -31,12 +31,6 @@ async def cmd_start(message: Message, state: FSMContext, db_session: AsyncSessio
         await message.answer(f"С возвращением, {user.name}!", reply_markup=get_main_keyboard())
 
 
-@general_router.message(StateFilter(None), F.text == "👤 Профиль")
-async def cmd_profile(message: Message, state: FSMContext, db_session: AsyncSession):
-    user = await db_session.get(User, message.from_user.id)
-    await message.answer(f"🔜 Скоро...")
-
-
 @general_router.message(StateFilter(None), F.text == "🏆 Зал славы")
 async def cmd_hof(message: Message, state: FSMContext, db_session: AsyncSession):
     user = await db_session.get(User, message.from_user.id)

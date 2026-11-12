@@ -1,4 +1,4 @@
-from sqlalchemy import select
+from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 from database.models import Category, Project, ProjectStatus, SubCategory
 from typing import Optional
@@ -112,3 +112,9 @@ async def update_project(
     await session.refresh(project)
 
     return project
+
+
+async def get_user_projects_count(session, user_id: int) -> int:
+    stmt = select(func.count(Project.id)).where(Project.user_id == user_id)
+    result = await session.execute(stmt)
+    return result.scalar_one()

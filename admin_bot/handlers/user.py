@@ -19,6 +19,8 @@ from config import config
 
 from public_bot_db.models import User
 
+from database.requests import create_moderation_record
+
 admin_router = Router()
 
 
@@ -82,7 +84,7 @@ async def process_reg_moderation_callback(callback: CallbackQuery, state: FSMCon
 
 
 @admin_router.message(RegRejectedState.waiting_for_reason)
-async def process_reg_reason(message: Message, state: FSMContext):
+async def process_reg_reason(message: Message, state: FSMContext, db_session: AsyncSession):
 
     if message.text:
 
@@ -98,6 +100,8 @@ async def process_reg_reason(message: Message, state: FSMContext):
             chat_id = user_data["chat_id"]
             msg_id = user_data["msg_id"]
             msg_text = user_data["msg_text"]
+
+            await create_moderation_record(db_session, user_id, reason)
 
             payload = json.dumps({
                 "_type": "registration",

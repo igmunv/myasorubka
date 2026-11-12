@@ -165,3 +165,15 @@ def get_retry_registration_keyboard() -> InlineKeyboardMarkup:
     builder.button(text="🔄 Попробовать еще раз", callback_data="retry_registration")
     
     return builder.as_markup()
+
+def get_profile_keyboard(is_regstr=True) -> InlineKeyboardMarkup:
+    builder = InlineKeyboardBuilder()
+
+    if is_regstr:
+        builder.button(text="✏️ Редактировать", callback_data="profile_change")
+        builder.button(text="📁 Мои Проекты", callback_data="profile_projects")
+        builder.adjust(2)
+    else:
+        builder.button(text="➕ Регистрация", callback_data="profile_registr")
+    
+    return builder.as_markup()

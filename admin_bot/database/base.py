@@ -1,21 +1,14 @@
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncAttrs
 from sqlalchemy.orm import DeclarativeBase
 from sqlalchemy import event
+from config import config
 
-DATABASE_URL = "sqlite+aiosqlite:///data/mmyaso.db"
+DATABASE_URL = f"postgresql+asyncpg://{config.postgres_user.get_secret_value()}:{config.postgres_password.get_secret_value()}@{config.postgres_host.get_secret_value()}:{config.postgres_port}/{config.postgres_db.get_secret_value()}"
 
 engine = create_async_engine(
     DATABASE_URL, 
-    echo=False,
-    connect_args={"timeout": 30.0}
+    echo=False
 )
-
-@event.listens_for(engine.sync_engine, "connect")
-def set_sqlite_pragma(dbapi_connection, connection_record):
-    cursor = dbapi_connection.cursor()
-    cursor.execute("PRAGMA journal_mode=WAL")
-    cursor.execute("PRAGMA synchronous=NORMAL")
-    cursor.close()
 
 async_session_maker = async_sessionmaker(engine, expire_on_commit=False)
 

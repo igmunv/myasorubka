@@ -8,15 +8,19 @@ from aiogram.client.session.aiohttp import AiohttpSession
 
 from handlers.user import admin_router
 
-from middlewares.db import DBmmyasoSessionMiddleware, DBsubmeatSessionMiddleware
+from middlewares.db import DBAdminSessionMiddleware, DBPublicSessionMiddleware
 
 from config import config
 
 from background import start_moderation_worker
 
+from database.base import init_db
+
 async def main():
 
     logging.basicConfig(level=logging.INFO)
+
+    await init_db()
     
     storage = RedisStorage.from_url(
         f"redis://default:{config.redis_password.get_secret_value()}@redis:6379/0",
@@ -29,8 +33,8 @@ async def main():
     bot = Bot(token=config.admin_bot_token.get_secret_value(), session=session)
     dp = Dispatcher(storage=storage)
 
-    dp.update.middleware(DBmmyasoSessionMiddleware())
-    dp.update.middleware(DBsubmeatSessionMiddleware())
+    dp.update.middleware(DBAdminSessionMiddleware())
+    dp.update.middleware(DBPublicSessionMiddleware())
 
     dp.include_router(admin_router)
 

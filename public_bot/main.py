@@ -13,6 +13,7 @@ from database.init_categories import sync_categories as sync_db_cats
 from handlers.general import general_router
 from handlers.registration import registration_router
 from handlers.project_submit import project_submit_router
+from handlers.profile import profile_router
 
 from middlewares.db import DbSessionMiddleware, RegisterUserMiddleware
 
@@ -43,9 +44,11 @@ async def main():
     dp.update.middleware(DbSessionMiddleware())
     dp.update.middleware(RegisterUserMiddleware())
 
+    dp.include_router(profile_router)
     dp.include_router(registration_router)
     dp.include_router(project_submit_router)
     dp.include_router(general_router)
+    
 
     asyncio.create_task(start_notification_worker(bot))
 
