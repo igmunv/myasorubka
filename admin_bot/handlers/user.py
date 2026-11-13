@@ -21,6 +21,10 @@ from public_bot_db.models import User, UserStatus, Project, ProjectStatus
 
 from database.requests import create_moderation_record
 
+from keyboards import get_main_sponsr_keyboard
+
+from aiogram.filters import Filter
+
 admin_router = Router()
 
 
@@ -28,27 +32,10 @@ ALLOWED_USER_IDS = [config.superuser_tg_id]
 
 redis_client = aioredis.from_url(f"redis://default:{config.redis_password.get_secret_value()}@redis:6379/0")
 
-@admin_router.message.outer_middleware
-async def check_user_id_middleware(
-    handler: Callable[[Message, Dict[str, Any]], Awaitable[Any]],
-    event: Message,
-    data: Dict[str, Any]
-) -> Any:
 
-    if event.from_user.id not in ALLOWED_USER_IDS:
-        return
-    
-    return await handler(event, data)
-
-
-@admin_router.message(CommandStart())
-async def cmd_start(message: Message, state: FSMContext, db_session: AsyncSession, db_public_session: AsyncSession):
-
-    user_count = await db_public_session.scalar(
-        select(func.count()).select_from(User)
-    )
-
-    await message.answer(f"💚 Я жив\n\nКоличество пользователей: {user_count}")
+class IsAllowedUser(Filter):
+    async def __call__(self, message: Message) -> bool:
+        return message.from_user.id in ALLOWED_USER_IDS
 
 
 @admin_router.callback_query(F.data.startswith("mod_registration_"))

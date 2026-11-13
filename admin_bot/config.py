@@ -7,6 +7,7 @@ class Settings(BaseSettings):
     admin_bot_token: SecretStr
 
     superuser_tg_id: int
+    secret_spons_tg_id: int
 
     postgres_user: SecretStr
     postgres_password: SecretStr
