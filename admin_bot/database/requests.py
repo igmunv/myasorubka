@@ -3,7 +3,7 @@ from sqlalchemy.dialects.postgresql import insert
 from database.models import RegistrationModeration
 from sqlalchemy import func
 from public_bot_db.models import ProjectStatus, Project
-from sqlalchemy import select, not_
+from sqlalchemy import select, not_, desc
 
 async def create_moderation_record(session: AsyncSession, user_id: int, reason: str):
     # Составляем инструкцию вставки
@@ -25,8 +25,12 @@ async def create_moderation_record(session: AsyncSession, user_id: int, reason: 
 
 
 async def get_all_projects(session: AsyncSession) -> list[Project]:
-    stmt = select(Project).where(
-        not_(Project.status.in_([ProjectStatus.FAIL, ProjectStatus.WAIT]))
+    stmt = (
+        select(Project)
+        .where(
+            not_(Project.status.in_([ProjectStatus.FAIL, ProjectStatus.WAIT]))
+        )
+        .order_by(desc(Project.created_at))  # Сортировка по убыванию (новые сверху)
     )
     result = await session.execute(stmt)
     return result.scalars().all()
