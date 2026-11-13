@@ -28,7 +28,7 @@ from aiogram.filters import Filter
 projects_router = Router()
 
 ALLOWED_USER_IDS = [config.superuser_tg_id, config.secret_spons_tg_id]
-ITEMS_PER_PAGE = 2
+ITEMS_PER_PAGE = 3
 
 redis_client = aioredis.from_url(f"redis://default:{config.redis_password.get_secret_value()}@redis:6379/0")
 
