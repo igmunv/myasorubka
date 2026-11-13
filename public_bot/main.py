@@ -14,6 +14,7 @@ from handlers.general import general_router
 from handlers.registration import registration_router
 from handlers.project_submit import project_submit_router
 from handlers.profile import profile_router
+from handlers.fallback import fallback_router
 
 from middlewares.db import DbSessionMiddleware, RegisterUserMiddleware
 
@@ -48,6 +49,7 @@ async def main():
     dp.include_router(registration_router)
     dp.include_router(project_submit_router)
     dp.include_router(general_router)
+    dp.include_router(fallback_router)
     
 
     asyncio.create_task(start_notification_worker(bot))
