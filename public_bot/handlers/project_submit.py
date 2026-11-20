@@ -65,8 +65,8 @@ async def cmd_send_project(message: Message, state: FSMContext, db_session: Asyn
                                 reply_markup=get_cancel_keyboard())
 
             await message.answer("<b>❗️Внимание: эти данные улетят в общий пост на канале</b>, поэтому заполняй всё без ошибок и так, чтобы народ реально хотел за тебя проголосовать\n\n"
-                                 "🎬 <b>Плюс</b> лучшие и самые интересные проекты могут попасть в видео на YouTube-канале <b><a href='https://www.youtube.com/@frac_chan'>@frac_chan</a> — даже если они не выиграют батле!</b>", 
-                                parse_mode="HTML", 
+                                 "🎬 <b>Плюс</b> лучшие и самые интересные проекты могут попасть в видео на YouTube-канале <b><a href='https://www.youtube.com/@frac_chan'>@frac_chan</a> — даже если они не выиграют в батле!</b>", 
+                                parse_mode="HTML",
                                 reply_markup=get_go_keyboard(),
                                 disable_web_page_preview=True)
 
