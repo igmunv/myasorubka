@@ -2,6 +2,8 @@ from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 from database.models import Category, Project, ProjectStatus, SubCategory
 from typing import Optional
+from shared.db.hallfame_models import HallOfFame
+from sqlalchemy.orm import selectinload
 
 
 async def get_all_categories(session: AsyncSession) -> list[dict]:
@@ -127,3 +129,15 @@ async def get_user_projects(session: AsyncSession, user_id: int) -> list[Project
     stmt = select(Project).where(Project.user_id == user_id)
     result = await session.execute(stmt)
     return result.scalars().all()
+
+
+async def get_hof_projects(session: AsyncSession) -> list[HallOfFame]:
+    stmt = (
+        select(HallOfFame)
+        .options(
+            selectinload(HallOfFame.project).selectinload(Project.user)
+        )
+        .order_by(HallOfFame.created_at.desc())
+    )
+    result = await session.execute(stmt)
+    return list(result.scalars().all())

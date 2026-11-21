@@ -3,7 +3,7 @@ from typing import Callable, Dict, Any, Awaitable
 from aiogram.types import TelegramObject
 
 from database.base import async_session_maker as admin_asm
-from public_bot_db.base import async_session_maker as public_asm
+from public_bot_db.conn import async_session_maker as public_asm
 
 
 class DBAdminSessionMiddleware(BaseMiddleware):

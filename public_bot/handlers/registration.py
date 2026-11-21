@@ -123,7 +123,7 @@ async def process_name(message: Message, state: FSMContext):
         else:
             await state.update_data(name=name)
             await state.set_state(RegistrationState.waiting_for_portfolio)
-            await message.answer("2️⃣ <b>Ссылка на портфолио (GitHub, сайт или резюме):</b>",
+            await message.answer("2️⃣ <b>Ссылка на тебя (ТГ-канал, GitHub, сайт и т.п.):</b>",
                                 parse_mode="HTML")
 
     else:

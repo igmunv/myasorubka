@@ -252,3 +252,38 @@ def get_project_keyboard(current_index: int, total_count: int, project_id: int) 
         )
         
     return builder.as_markup()
+
+
+
+class HallOfFamePaginationCallback(CallbackData, prefix="hof_page"):
+    index: int  # Индекс проекта в списке (0, 1, 2...)
+
+
+def get_halloffame_keyboard(current_index: int, total_count: int) -> InlineKeyboardMarkup:
+    builder = InlineKeyboardBuilder()
+    
+    # Кнопки навигации (Назад / Вперед) добавляем только если проектов больше одного
+    nav_buttons = []
+    
+    if total_count > 1:
+        # Кнопка "Назад" (если это не первая страница)
+        prev_index = current_index - 1 if current_index > 0 else total_count - 1
+        nav_buttons.append(
+            InlineKeyboardButton(
+                text="◀️ Назад", 
+                callback_data=HallOfFamePaginationCallback(index=prev_index).pack()
+            )
+        )
+        
+        # Кнопка "Вперед" (если это не последняя страница)
+        next_index = current_index + 1 if current_index < total_count - 1 else 0
+        nav_buttons.append(
+            InlineKeyboardButton(
+                text="Вперед ▶️", 
+                callback_data=HallOfFamePaginationCallback(index=next_index).pack()
+            )
+        )
+        # Добавляем в ряд
+        builder.row(*nav_buttons)
+        
+    return builder.as_markup()

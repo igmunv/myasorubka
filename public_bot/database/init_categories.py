@@ -2,7 +2,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from .models import Category, SubCategory
 import asyncio
-from .base import async_session_maker
+from .conn import async_session_maker
 
 CATEGORIES = [
 

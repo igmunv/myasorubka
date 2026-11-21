@@ -66,9 +66,9 @@ async def cmd_profile(message: Message, state: FSMContext, db_session: AsyncSess
     elif user.status == UserStatus.READY:
         await message.answer(f"👤 <b>Твой профиль (<i>проверено ✅</i>):</b>\n\n"
                             f"Так будет выглядеть твоя карточка в канале, если ты выиграешь батл 👇\n\n"
-                            f"<blockquote>🏛 <b>Зал славы: Название твоего проекта</b>\n\n"
-                            f"Здесь будет описание твоего проекта и причина его крутости...\n\n"
-                            f"🥇 <b>Победитель:</b> {html.escape(user.name)}\n"
+                            f"<blockquote>🏆 <b>Победитель МЯСОРУБКИ #123</b>\n\n"
+                            f"Здесь будет описание твоего проекта...\n\n"
+                            f"🥇 <b>Автор:</b> {html.escape(user.name)}\n"
                             f"💬 <b>О себе:</b> {html.escape(user.about)}\n"
                             f'<b><a href="{html.escape(user.portfolio)}">🔗 Найти меня можно здесь</a></b>\n\n'
                             f'⭐️ <b>Давайте поддержим автора и его проект!</b></blockquote>\n\n'
