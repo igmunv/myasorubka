@@ -126,7 +126,11 @@ async def get_user_projects_count(session, user_id: int) -> int:
     return result.scalar_one()
 
 async def get_user_projects(session: AsyncSession, user_id: int) -> list[Project]:
-    stmt = select(Project).where(Project.user_id == user_id)
+    stmt = (
+        select(Project)
+        .where(Project.user_id == user_id)
+        .where(Project.status != ProjectStatus.POST_BATTLE)
+    )
     result = await session.execute(stmt)
     return result.scalars().all()
 
