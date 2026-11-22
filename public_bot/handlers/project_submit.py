@@ -10,12 +10,13 @@ from sqlalchemy import select
 
 from states import ProjectSubmitState
 
-from database.models import User, Project, Category, SubCategory, ProjectStatus, UserStatus
+from shared.db.user_models import User, Project, UserStatus
+from shared.db.project_models import Category, SubCategory, ProjectStatus
 from database.requests import get_user_project, get_all_categories, get_subcategories_by_category, get_user_projects_count
 
 import redis.asyncio as aioredis
 
-from config import config
+from shared.config import config
 
 import validators
 import json

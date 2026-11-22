@@ -1,8 +1,8 @@
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from .models import Category, SubCategory
+from shared.db.project_models import Category, SubCategory
 import asyncio
-from .conn import async_session_maker
+from shared.db.conn import async_session_maker
 
 CATEGORIES = [
 

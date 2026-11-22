@@ -15,9 +15,10 @@ import json, html
 
 from states import RegRejectedState, ProjSubmitRejectState
 
-from config import config
+from shared.config import config
 
-from public_bot_db.models import User, UserStatus, Project, ProjectStatus
+from shared.db.project_models import Project, ProjectStatus
+from shared.db.user_models import User, UserStatus
 
 from database.requests import create_reg_moderation_record, create_proj_moderation_record
 
@@ -39,17 +40,17 @@ class IsAllowedUser(Filter):
 
 
 @admin_router.callback_query(F.data.startswith("mod_registration_"))
-async def process_reg_moderation_callback(callback: CallbackQuery, state: FSMContext, db_public_session: AsyncSession):
+async def process_reg_moderation_callback(callback: CallbackQuery, state: FSMContext, db_session: AsyncSession):
     action, user_id_str = callback.data.split(":")
     user_id = int(user_id_str)
     
     decision = "approved" if action == "mod_registration_approve" else "rejected"
 
     # Обновляем статус в базе данных
-    user = await db_public_session.get(User, user_id)
+    user = await db_session.get(User, user_id)
     if user:
         user.status = UserStatus.READY if decision == "approved" else UserStatus.FAIL
-        await db_public_session.commit()
+        await db_session.commit()
 
     if decision == "approved":
     

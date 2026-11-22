@@ -1,10 +1,7 @@
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy import BigInteger, String, ForeignKey, DateTime, func, Text, Boolean, Enum as SQLEnum
-from database.base import Base
-from typing import List
+from shared.db.base import Base
 from datetime import datetime
-import enum
-from typing import Optional
 
 
 class RegistrationModeration(Base):

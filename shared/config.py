@@ -4,7 +4,11 @@ from typing import Optional
 
 class Settings(BaseSettings):
 
+    admin_bot_token: SecretStr
     public_bot_token: SecretStr
+
+    superuser_tg_id: int
+    secret_spons_tg_id: int
 
     postgres_user: SecretStr
     postgres_password: SecretStr
@@ -14,11 +18,11 @@ class Settings(BaseSettings):
 
     redis_password: SecretStr
 
+    proxy_url: Optional[SecretStr] = None
+
     model_config = SettingsConfigDict(
         env_file='.env',
         env_file_encoding='utf-8'
     )
-
-    proxy_url: Optional[SecretStr] = None
 
 config = Settings()

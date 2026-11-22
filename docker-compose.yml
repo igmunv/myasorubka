@@ -48,8 +48,7 @@ services:
       - .env
     volumes:
       - ./public_bot:/app/bot
-      - ./admin_bot/database:/app/bot/admin_bot_db
-      - ./shared/db/:/app/bot/shared/db/
+      - ./shared:/app/bot/shared
     depends_on:
       redis:
         condition: service_healthy
@@ -64,7 +63,7 @@ services:
       - .env
     volumes:
       - ./admin_bot:/app/bot
-      - ./public_bot/database:/app/bot/public_bot_db
+      - ./shared:/app/bot/shared
     depends_on:
       redis:
         condition: service_healthy

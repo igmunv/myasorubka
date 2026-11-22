@@ -7,7 +7,7 @@ from aiogram import Bot
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 import html
 
-from config import config
+from shared.config import config
 
 
 async def start_moderation_worker(bot: Bot):

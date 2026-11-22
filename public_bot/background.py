@@ -8,7 +8,7 @@ import redis.asyncio as aioredis
 from aiogram import Bot
 
 from keyboards import get_retry_registration_keyboard, get_fix_project_button, get_my_projects_button
-from config import config
+from shared.config import config
 
 async def start_notification_worker(bot: Bot):
     

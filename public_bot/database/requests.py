@@ -1,6 +1,6 @@
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
-from database.models import Category, Project, ProjectStatus, SubCategory
+from shared.db.project_models import Category, Project, ProjectStatus, SubCategory
 from typing import Optional
 from shared.db.hallfame_models import HallOfFame
 from sqlalchemy.orm import selectinload

@@ -1,12 +1,9 @@
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy import BigInteger, String, ForeignKey, DateTime, func, Text, Boolean, Enum as SQLEnum
+from sqlalchemy import ForeignKey, DateTime, func
 from datetime import datetime
-from typing import Optional
-from database.base import Base
-from typing import TYPE_CHECKING
 
-if TYPE_CHECKING:
-    from database.models import Project
+from shared.db.base import Base
+from shared.db.project_models import Project
 
 
 class HallOfFame(Base):

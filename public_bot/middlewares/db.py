@@ -1,12 +1,11 @@
 from aiogram import BaseMiddleware
 from typing import Callable, Dict, Any, Awaitable
 from aiogram.types import TelegramObject
-from database.conn import async_session_maker
+from shared.db.conn import async_session_maker
 from aiogram.types import TelegramObject, Message, User as TelegramUser
 from sqlalchemy.ext.asyncio import AsyncSession
-from database.models import User, UserStatus
+from shared.db.user_models import User, UserStatus
 from keyboards import get_main_keyboard
-import logging
 
 
 class DbSessionMiddleware(BaseMiddleware):

@@ -10,7 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from keyboards import get_cancel_keyboard, get_main_keyboard, get_halloffame_keyboard
 from keyboards import HallOfFamePaginationCallback
 
-from database.models import User, UserStatus, Project, Category, SubCategory
+from shared.db.user_models import User, UserStatus
 from database.requests import get_hof_projects
 
 from shared.db.hallfame_models import HallOfFame
@@ -36,7 +36,7 @@ async def cmd_hof(message: Message, state: FSMContext, db_session: AsyncSession)
     projects = await get_hof_projects(db_session)
         
     if not projects:
-        await message.answer("🦗 <b>Зал славы пуст...</b>", show_alert=True)
+        await message.answer("🦗 <b>Зал славы пуст...</b>", show_alert=True, parse_mode="HTML")
         return
         
     current_index = 0

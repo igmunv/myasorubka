@@ -11,13 +11,13 @@ import json
 
 from states import RegistrationState
 
-from database.models import User, UserStatus
+from shared.db.user_models import User, UserStatus
 
 import redis.asyncio as aioredis
 
 from keyboards import get_main_keyboard, send_cancel_keyboard, get_go_keyboard
 
-from config import config
+from shared.config import config
 
 
 registration_router = Router()

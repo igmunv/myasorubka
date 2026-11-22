@@ -3,11 +3,10 @@ from aiogram.types import Message
 from aiogram.filters import CommandStart
 from aiogram.fsm.context import FSMContext
 from aiogram.types import KeyboardButton, Message, ReplyKeyboardMarkup, ReplyKeyboardRemove, CallbackQuery
-from typing import Callable, Dict, Any, Awaitable
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from config import config
+from shared.config import config
 
 from keyboards import get_main_sponsr_keyboard
 from aiogram.filters import Filter
@@ -24,5 +23,5 @@ class IsAllowedUser(Filter):
 general_router.message.filter(IsAllowedUser())
 
 @general_router.message(CommandStart())
-async def cmd_start(message: Message, state: FSMContext, db_session: AsyncSession, db_public_session: AsyncSession):
+async def cmd_start(message: Message, state: FSMContext, db_session: AsyncSession):
     await message.answer(f"💚 Я жив", reply_markup=get_main_sponsr_keyboard())

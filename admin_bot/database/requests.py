@@ -1,8 +1,8 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.dialects.postgresql import insert
-from database.models import RegistrationModeration, ProjectsModeration
+from shared.db.moderation_models import RegistrationModeration, ProjectsModeration
 from sqlalchemy import func
-from public_bot_db.models import ProjectStatus, Project
+from shared.db.project_models import ProjectStatus, Project
 from sqlalchemy import select, not_, desc
 
 async def create_reg_moderation_record(session: AsyncSession, user_id: int, reason: str):

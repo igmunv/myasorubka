@@ -1,6 +1,5 @@
 import asyncio
 import logging
-import os
 
 from aiogram import Bot, Dispatcher
 from aiogram.fsm.storage.redis import RedisStorage, DefaultKeyBuilder
@@ -10,19 +9,20 @@ from handlers.user import admin_router
 from handlers.projects import projects_router
 from handlers.general import general_router
 
-from middlewares.db import DBAdminSessionMiddleware, DBPublicSessionMiddleware
+from middlewares.db import DBSessionMiddleware
 
-from config import config
+from shared.config import config
 
 from background import start_moderation_worker
 
-from database.base import init_db
+from shared.db.conn import init_db
+from shared.db.base import Base
 
 async def main():
 
     logging.basicConfig(level=logging.INFO)
 
-    await init_db()
+    await init_db(Base)
     
     storage = RedisStorage.from_url(
         f"redis://default:{config.redis_password.get_secret_value()}@redis:6379/0",
@@ -35,8 +35,7 @@ async def main():
     bot = Bot(token=config.admin_bot_token.get_secret_value(), session=session)
     dp = Dispatcher(storage=storage)
 
-    dp.update.middleware(DBAdminSessionMiddleware())
-    dp.update.middleware(DBPublicSessionMiddleware())
+    dp.update.middleware(DBSessionMiddleware())
 
     dp.include_router(admin_router)
     dp.include_router(projects_router)

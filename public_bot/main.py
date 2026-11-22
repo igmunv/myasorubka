@@ -1,16 +1,13 @@
 import asyncio
 import logging
-import os
 
 from aiogram import Bot, Dispatcher
 from aiogram.fsm.storage.redis import RedisStorage, DefaultKeyBuilder
 from aiogram.client.session.aiohttp import AiohttpSession
 
-from database.conn import init_db, async_session_maker
-from database.base import Base
+from shared.db.conn import init_db, async_session_maker
+from shared.db.base import Base
 from database.init_categories import sync_categories as sync_db_cats
-
-import shared.db.hallfame_models
 
 from handlers.general import general_router
 from handlers.registration import registration_router
@@ -20,7 +17,7 @@ from handlers.fallback import fallback_router
 
 from middlewares.db import DbSessionMiddleware, RegisterUserMiddleware
 
-from config import config
+from shared.config import config
 
 from background import start_notification_worker
 

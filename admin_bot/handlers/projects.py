@@ -7,19 +7,17 @@ from aiogram.filters import StateFilter
 from aiogram.utils.keyboard import InlineKeyboardBuilder, InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.filters.callback_data import CallbackData
 
-from typing import Callable, Dict, Any, Awaitable
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 
-import asyncio
 import redis.asyncio as aioredis
-import json, html
+import html
 import math
 
-from config import config
+from shared.config import config
 
-from public_bot_db.models import Project
+from shared.db.project_models import Project
 
 from database.requests import get_all_projects
 
