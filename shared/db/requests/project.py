@@ -1,9 +1,11 @@
-from sqlalchemy import select, func
-from sqlalchemy.ext.asyncio import AsyncSession
-from shared.db.project_models import Category, Project, ProjectStatus, SubCategory
 from typing import Optional
-from shared.db.hallfame_models import HallOfFame
+
+from sqlalchemy import desc, func, not_, select
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
+
+from shared.db.models.hallfame import HallOfFame
+from shared.db.models.project import Category, Project, ProjectStatus, SubCategory
 
 
 async def get_all_categories(session: AsyncSession) -> list[dict]:
@@ -78,7 +80,6 @@ async def create_new_project(
 
     return new_project
 
-
 # Человек обновил инфу о проекте
 async def update_project(
     session: AsyncSession,
@@ -125,6 +126,7 @@ async def get_user_projects_count(session, user_id: int) -> int:
     result = await session.execute(stmt)
     return result.scalar_one()
 
+
 async def get_user_projects(session: AsyncSession, user_id: int) -> list[Project]:
     stmt = (
         select(Project)
@@ -145,3 +147,15 @@ async def get_hof_projects(session: AsyncSession) -> list[HallOfFame]:
     )
     result = await session.execute(stmt)
     return list(result.scalars().all())
+
+
+async def get_all_projects(session: AsyncSession) -> list[Project]:
+    stmt = (
+        select(Project)
+        .where(
+            not_(Project.status.in_([ProjectStatus.FAIL, ProjectStatus.WAIT]))
+        )
+        .order_by(desc(Project.created_at))  # Сортировка по убыванию (новые сверху)
+    )
+    result = await session.execute(stmt)
+    return result.scalars().all()

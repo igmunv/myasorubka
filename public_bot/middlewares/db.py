@@ -4,7 +4,7 @@ from aiogram.types import TelegramObject
 from shared.db.conn import async_session_maker
 from aiogram.types import TelegramObject, Message, User as TelegramUser
 from sqlalchemy.ext.asyncio import AsyncSession
-from shared.db.user_models import User, UserStatus
+from shared.db.models.user import User, UserStatus
 from keyboards import get_main_keyboard
 
 

@@ -15,13 +15,13 @@
 # ну либо просто сортирует авторов так чтобы сначала были те кто давно не участвовал
 
 
-import asyncio
+from shared.db.models.project import Project
 
 
+async def get_projects(db_session) -> list[Project]:
+    """ Выбирает и возвращает три проекта для батла. Выбор происходит на основе множества критериев"""
 
-
-async def get_projects(projects: list[Project]) -> :
-    pass
+    
 
 
 if __name__ == "__main__":

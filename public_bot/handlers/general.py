@@ -10,10 +10,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from keyboards import get_cancel_keyboard, get_main_keyboard, get_halloffame_keyboard
 from keyboards import HallOfFamePaginationCallback
 
-from shared.db.user_models import User, UserStatus
-from database.requests import get_hof_projects
+from shared.db.models.user import User, UserStatus
+from shared.db.requests.project import get_hof_projects
 
-from shared.db.hallfame_models import HallOfFame
+from shared.db.models.hallfame import HallOfFame
 
 import html
 

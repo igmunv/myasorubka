@@ -11,7 +11,7 @@ import json
 
 from states import RegistrationState
 
-from shared.db.user_models import User, UserStatus
+from shared.db.models.user import User, UserStatus
 
 import redis.asyncio as aioredis
 

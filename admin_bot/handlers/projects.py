@@ -17,9 +17,9 @@ import math
 
 from shared.config import config
 
-from shared.db.project_models import Project
+from shared.db.models.project import Project
 
-from database.requests import get_all_projects
+from shared.db.requests.project import get_all_projects
 
 from aiogram.filters import Filter
 

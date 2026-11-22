@@ -6,7 +6,7 @@ from aiogram.fsm.storage.redis import RedisStorage, DefaultKeyBuilder
 from aiogram.client.session.aiohttp import AiohttpSession
 
 from shared.db.conn import init_db, async_session_maker
-from shared.db.base import Base
+from shared.db.models.base import Base
 from database.init_categories import sync_categories as sync_db_cats
 
 from handlers.general import general_router

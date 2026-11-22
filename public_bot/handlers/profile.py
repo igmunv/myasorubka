@@ -12,16 +12,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from keyboards import send_cancel_keyboard, get_project_keyboard, get_profile_keyboard, get_go_keyboard, get_registration_button, get_retry_registration_keyboard
 from keyboards import ProjectPaginationCallback
 
-from shared.db.user_models import User, UserStatus
-from shared.db.project_models import ProjectStatus, Project, Category, SubCategory
-from shared.db.moderation_models import RegistrationModeration, ProjectsModeration
-from database.requests import get_user_projects
+from shared.db.models.user import User, UserStatus
+from shared.db.models.project import ProjectStatus, Project, Category, SubCategory
+from shared.db.models.moderation import RegistrationModeration, ProjectsModeration
+from shared.db.requests.project import get_user_projects
 
-import redis.asyncio as aioredis
-
-from shared.config import config
-
-import html, logging
+import html
 
 profile_router = Router()
 

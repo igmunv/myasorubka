@@ -1,18 +1,17 @@
 from aiogram import Router, F, types
 from aiogram.types import Message
 from aiogram.fsm.context import FSMContext
-from aiogram.types import KeyboardButton, Message, ReplyKeyboardMarkup, ReplyKeyboardRemove
+from aiogram.types import Message
 from aiogram.filters import StateFilter
 import html
 
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
 
 from states import ProjectSubmitState
 
-from shared.db.user_models import User, Project, UserStatus
-from shared.db.project_models import Category, SubCategory, ProjectStatus
-from database.requests import get_user_project, get_all_categories, get_subcategories_by_category, get_user_projects_count
+from shared.db.models.user import User, Project, UserStatus
+from shared.db.models.project import Category, SubCategory, ProjectStatus
+from shared.db.requests.project import get_all_categories, get_subcategories_by_category, get_user_projects_count
 
 import redis.asyncio as aioredis
 

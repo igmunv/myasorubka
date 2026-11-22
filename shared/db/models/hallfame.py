@@ -2,8 +2,8 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy import ForeignKey, DateTime, func
 from datetime import datetime
 
-from shared.db.base import Base
-from shared.db.project_models import Project
+from shared.db.models.base import Base
+from shared.db.models.project import Project
 
 
 class HallOfFame(Base):

@@ -16,7 +16,7 @@ from shared.config import config
 from background import start_moderation_worker
 
 from shared.db.conn import init_db
-from shared.db.base import Base
+from shared.db.models.base import Base
 
 async def main():
 

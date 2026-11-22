@@ -1,9 +1,9 @@
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.dialects.postgresql import insert
-from shared.db.moderation_models import RegistrationModeration, ProjectsModeration
 from sqlalchemy import func
-from shared.db.project_models import ProjectStatus, Project
-from sqlalchemy import select, not_, desc
+from sqlalchemy.dialects.postgresql import insert
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from shared.db.models.moderation import ProjectsModeration, RegistrationModeration
+
 
 async def create_reg_moderation_record(session: AsyncSession, user_id: int, reason: str):
     # Составляем инструкцию вставки
@@ -41,15 +41,3 @@ async def create_proj_moderation_record(session: AsyncSession, project_id: int, 
     
     await session.execute(stmt)
     await session.commit()
-
-
-async def get_all_projects(session: AsyncSession) -> list[Project]:
-    stmt = (
-        select(Project)
-        .where(
-            not_(Project.status.in_([ProjectStatus.FAIL, ProjectStatus.WAIT]))
-        )
-        .order_by(desc(Project.created_at))  # Сортировка по убыванию (новые сверху)
-    )
-    result = await session.execute(stmt)
-    return result.scalars().all()

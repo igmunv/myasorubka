@@ -1,14 +1,14 @@
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy import BigInteger, String, ForeignKey, DateTime, func, Text, Enum as SQLEnum
-from shared.db.base import Base
+from shared.db.models.base import Base
 from datetime import datetime
 import enum
 from typing import Optional
-from shared.db.project_models import Project
+from shared.db.models.project import Project
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from shared.db.project_models import Project
+    from shared.db.models.project import Project
 
 class UserStatus(str, enum.Enum):
     NEW = "new" # новичок, не зарегался

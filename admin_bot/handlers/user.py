@@ -17,10 +17,10 @@ from states import RegRejectedState, ProjSubmitRejectState
 
 from shared.config import config
 
-from shared.db.project_models import Project, ProjectStatus
-from shared.db.user_models import User, UserStatus
+from shared.db.models.project import Project, ProjectStatus
+from shared.db.models.user import User, UserStatus
 
-from database.requests import create_reg_moderation_record, create_proj_moderation_record
+from shared.db.requests.moderation import create_reg_moderation_record, create_proj_moderation_record
 
 from keyboards import get_main_sponsr_keyboard
 

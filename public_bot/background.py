@@ -1,7 +1,6 @@
 import asyncio
 import json
 import html
-from datetime import datetime, timedelta
 
 import redis.asyncio as aioredis
 
