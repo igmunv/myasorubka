@@ -21,6 +21,21 @@ async def get_latest_battle(session: AsyncSession) -> Battle | None:
     return result.scalar_one_or_none()
 
 
+async def count_battle_projects_by_category(
+    session: AsyncSession,
+    category_id: int,
+) -> int:
+    """Возвращает общее количество записей в battle_projects для батлов с заданным category_id."""
+    stmt = (
+        select(func.count())
+        .select_from(BattleProject)
+        .join(Battle, Battle.id == BattleProject.battle_id)
+        .where(Battle.category_id == category_id)
+    )
+    result = await session.execute(stmt)
+    return result.scalar_one()
+
+
 async def count_battle_projects_by_sub_category(
     session: AsyncSession,
     sub_category_id: int,
