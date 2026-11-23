@@ -3,6 +3,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from shared.db.models.battle import Battle, BattleProject
+from shared.db.models.user import User
+from shared.db.models.project import Project
 
 
 async def get_latest_battle(session: AsyncSession) -> Battle | None:
@@ -32,3 +34,34 @@ async def count_battle_projects_by_sub_category(
     )
     result = await session.execute(stmt)
     return result.scalar_one()
+
+
+async def count_user_battle_participations(
+    session: AsyncSession,
+    user: User,
+) -> int:
+    """Возвращает количество участий проектов пользователя в батлах."""
+    stmt = (
+        select(func.count(BattleProject.battle_id))
+        .select_from(BattleProject)
+        .join(Project, Project.id == BattleProject.project_id)
+        .where(Project.user_id == user.id)
+    )
+    result = await session.execute(stmt)
+    return result.scalar_one()
+
+
+async def get_battle_users(
+    session: AsyncSession,
+    battle: Battle,
+) -> list[User]:
+    """Возвращает уникальных пользователей (авторов проектов), участвовавших в батле."""
+    stmt = (
+        select(User)
+        .join(Project, Project.user_id == User.id)
+        .join(BattleProject, BattleProject.project_id == Project.id)
+        .where(BattleProject.battle_id == battle.id)
+        .distinct()
+    )
+    result = await session.execute(stmt)
+    return list(result.scalars().all())

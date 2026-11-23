@@ -9,8 +9,8 @@
 # - v берет все проекты status = READY
 # - v смотрит подкатегории в которых есть 3 проекта
 # - v исключает подкатегорию которая была в батле прошлый раз
-# - выбирает подкатегорию по порядку
-# - смотрит чтобы подкатегории были равны и участвовали все по ровну
+# - v выбирает подкатегорию по порядку
+# - v смотрит чтобы подкатегории были равны и участвовали все по ровну
 # - смотрит автора проекта, чтобы не было повторов подряд
 # - также смотрит, если есть автор который никогда не участвовал, то ему приоритет
 # ну либо просто сортирует авторов так чтобы сначала были те кто давно не участвовал
@@ -22,7 +22,7 @@ from shared.db.models.project import Project
 from shared.db.models.battle import Battle
 
 from shared.db.requests.project import get_projects_ready_battle
-from shared.db.requests.battle import get_latest_battle, count_battle_projects_by_sub_category
+from shared.db.requests.battle import get_latest_battle, count_battle_projects_by_sub_category, count_user_battle_participations, get_battle_users
 
 from collections import defaultdict
 
@@ -42,6 +42,10 @@ async def select_battle_projects(db_session: AsyncSession) -> list[Project]:
     # Получаем последний батл
     latest_battle: Battle = await get_latest_battle(db_session)
 
+    # Авторы участвовавшие в прошлом батле
+    latest_battle_users: list[User] = await get_battle_users(db_session, latest_battle)
+    excluded_users: set[User] = set(latest_battle_users)
+
     # Если батл был по подкатегории
     if latest_battle.sub_category_id:
 
@@ -50,9 +54,6 @@ async def select_battle_projects(db_session: AsyncSession) -> list[Project]:
 
     # Оставляем только подкатегории где >= 3 проектов
     by_subcat_three_more: dict[int, list[Project]] = filter_cats_min_projects(by_subcat)
-
-    by_subcat.clear()
-    del by_subcat
 
     # Если ни в одной подкатегории нету даже 3 проекта, то
     if not by_subcat_three_more:
@@ -73,6 +74,12 @@ async def select_battle_projects(db_session: AsyncSession) -> list[Project]:
     # Сортируем чтобы сначала были подкатегории которые меньше всех участвовали в батлах
     sorted_counts = dict(sorted(count_battle_every_subcat.items(), key=lambda item: item[1]))
 
+    # Подкатегории и в каждой авторы проектов, и количество их участия в батлах
+    sub_categories_with_authors: dict[int, dict[User, int]] = {}
+
+    # Словарь для поиска проекта по юзеру
+    sub_cat_authors_with_projects: dict[int, dict[User, Project]] = {}
+
     # Пробегаемся по каждой подкатеории
     for scat_id in sorted_counts:
 
@@ -80,7 +87,50 @@ async def select_battle_projects(db_session: AsyncSession) -> list[Project]:
         scat_projects = by_subcat_three_more[scat_id]
 
         # Получаем всех авторов проектов
-        await get_projects_authors(scat_projects)
+        projects_authors: dict[Project, User] = await get_projects_authors(scat_projects)
+
+        # Удаляем авторов которые участвовали в прошлом батле
+        for project in [p for p, u in projects_authors.items() if u in excluded_users]:
+            del projects_authors[project]
+
+        # Записываем юзеров с проектами, на будущее, чтобы потом легко найти проект по юзеру
+        sub_cat_authors_with_projects[scat_id] = {}
+        for proj, user in projects_authors.items():
+            sub_cat_authors_with_projects[scat_id][user] = proj
+
+        # Получаем количество участий в батлах всех пользователей
+        battle_count: dict[User, int] = await get_users_battle_count(db_session, list(projects_authors.values()))
+        
+        sub_categories_with_authors[scat_id] = battle_count
+    
+    # Оставляем в каждой подкатегории только 3 пользователя которые меньше всех участвовали в батлах
+    filtered_sub_categories: dict[int, dict[User, int]] = {
+        cat_id: dict(sorted(authors.items(), key=lambda item: item[1])[:3])
+        for cat_id, authors in sub_categories_with_authors.items()
+    }
+
+    # У каждой категории вычисляем среднее число количества участий в батлах
+    avg_by_category: dict[int, float] = {
+        cat_id: sum(authors.values()) / len(authors)
+        for cat_id, authors in filtered_sub_categories.items()
+        if authors  
+    }
+
+    # Получаем подкатегорию с самым наименьшим числом. Т.е где юзеры меньше всего участвовали в батлах 
+    best_subcat_id: int | None = min(avg_by_category, key=avg_by_category.get, default=None)
+    best_subcat_users: dict[User, int] = filtered_sub_categories[best_subcat_id]
+    best_users: list[User] = list(best_subcat_users.keys())
+    
+    authors_in_best_cat = sub_cat_authors_with_projects.get(best_subcat_id, {})
+
+    best_projects: list[Project] = [
+        authors_in_best_cat[user]
+        for user in best_users
+        if user in authors_in_best_cat
+    ]
+
+    return best_projects
+
         
         # ТУТ ЕЩЕ ПРОБЛЕМА В ТОМ ЧТО НУЖНО ВСЕХ СОБРАТЬ ПОЛЬЗОВАТЕЛЕЙ, ДЛЯ ВСЕХ ПОДКАТЕГОРИЙ
         # А ПОТОМ ЕЩЕ НАДО ИХ МЕЖДУ СОБОЙ ВСЕХ СРАВНИТЬ КАК ТО
@@ -88,10 +138,19 @@ async def select_battle_projects(db_session: AsyncSession) -> list[Project]:
         # > МОЖНО ПРОСТО ДЛЯ КАЖДОЙ КАТЕГОРИИ СРЕДНЕЕ ЗНАЧЕНИЕ. И В КОТОРОЙ МЕНЬШЕ ВСЕГО, ТЕ И УЧАСТВУЮТ
         # !!! ТАКЖЕ НЕ ЗАБУДЬ ЧТО НУЖНО ПРОВЕРЯТЬ, ЧТОБЫ ПОЛЬЗОВАТЕЛЬ ПОВТОРНО НЕ УЧАСТВОВАЛ В БАТЛЕ!!! НУЖНО ТАКИХ УДАЛЯТЬ СРАЗУ, КТО В ПРОШЛОМ УЧАСТВОВАЛ БАТЛЕ
         
+        # Также этот алгоритм должен если проектов мало, то брать уже любой: сначала любую категорию, затем он уже должен перестать придераться к пользователям
 
     # словарь где будет написан юзер и сколько раз он участвовал в батлах: {user123: 4}. и фильтрация по value, у кого меньше тот и в приоритете
     # и это нужно выполнять только для одной подка  тегории
     # то же самое нужно делать с категориями и подкатеориями: сколько раз они участвовали в батлах. и в приоритете те у кого меньше количество участий, чтоб все участвоавали крч. сначала по подкатегориям потом уже по юзерам
+
+async def get_users_battle_count(db_session, users: list[User]) -> dict[User, int]:
+    result: dict[User, int] = {}
+
+    for user in users:
+        result[user] = await count_user_battle_participations(db_session, user)
+    
+    return result
 
 
 async def get_projects_authors(projects: list[Project]) -> dict[Project, User]:
