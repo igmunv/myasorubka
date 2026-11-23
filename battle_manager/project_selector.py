@@ -62,7 +62,7 @@ async def select_battle_projects(db_session: AsyncSession) -> list[Project]:
         logger.info(f"received {len(excluded_users)} users")
     else:
         logger.info(f"latest battle is None")
-        excluded_users: set[User] = []
+        excluded_users: set[User] = set()
 
     logger.info(f"call select_projects()")
     # здесь надо по другому. должны будут менять valid_strictness
@@ -109,6 +109,17 @@ async def select_projects(db_session: AsyncSession, all_projects: list[Project],
                 unique_projects.append(proj)
         logger.info(f"category {cat_id}: len after deduplicating: {len(unique_projects)}")
         by_cat[cat_id] = unique_projects
+
+    # Удаляем авторов (и их проекты) которые участвовали в прошлом батле
+    logger.info(f"excluding authors from previous battle")
+    for cat_id, cat_projects in by_cat.items():
+        # Получаем всех авторов проектов
+        logger.info(f"get all projects authors")
+        projects_authors: dict[Project, User] = await get_projects_authors(cat_projects)
+        # Удаляем
+        for project in [p for p, u in projects_authors.items() if u in excluded_users]:
+            by_cat[cat_id].remove(project)
+            logger.info(f"delete: project_id={project.id}, user_id={project.user_id}")
 
     # Оставляем только категории где >= 3 проектов
     logger.info(f"filtering categories min projects: need >= 3 projects in category")
@@ -159,12 +170,6 @@ async def select_projects(db_session: AsyncSession, all_projects: list[Project],
         logger.info(f"get all projects authors")
         projects_authors: dict[Project, User] = await get_projects_authors(cat_projects)
 
-        # Удаляем авторов (и их проекты) которые участвовали в прошлом батле
-        logger.info(f"excluding authors from previous battle")
-        for project in [p for p, u in projects_authors.items() if u in excluded_users]:
-            del projects_authors[project]
-            logger.info(f"delete: project_id={project.id}, user_id={project.user_id}")
-
         # Записываем юзеров с проектами, на будущее, чтобы потом легко найти проект по юзеру
         logger.info(f"create dict user:project for easy find future")
         cat_authors_with_projects[cat_id] = {}
@@ -193,20 +198,31 @@ async def select_projects(db_session: AsyncSession, all_projects: list[Project],
         if authors  
     }
 
-    # Получаем категорию с самым наименьшим числом. Т.е где юзеры меньше всего участвовали в батлах 
-    logger.info("Finding category with minimum battle count")
-    best_cat = min(avg_by_category.items(), key=lambda item: item[1], default=None)
-    best_cat_id: int | None = best_cat[0] if best_cat is not None else None
-    best_avg: float | None = best_cat[1] if best_cat is not None else None
-    logger.info(f"category with minimum battle count: category_id={best_cat_id}, category_battle_count={best_avg}")
+    # Пробегаемся столько сколько у нас категорий. И ищем с наименьшим числом и ту где 3 юзера
+    for n in range(len(avg_by_category)):
 
-    # Если все норм, юзеры есть
-    if best_cat_id is not None:
+        logger.info(f"attempt {n+1}")
 
-        logger.info(f"users/projects exist")
+        # Получаем категорию с самым наименьшим числом. Т.е где юзеры меньше всего участвовали в батлах 
+        logger.info("Finding category with minimum battle count")
+        best_cat = min(avg_by_category.items(), key=lambda item: item[1], default=None)
+        best_cat_id: int | None = best_cat[0] if best_cat is not None else None
+        best_avg: float | None = best_cat[1] if best_cat is not None else None
+        logger.info(f"category with minimum battle count: category_id={best_cat_id}, category_battle_count={best_avg}")
 
         best_cat_users: dict[User, int] = filtered_categories[best_cat_id]
         best_users: list[User] = list(best_cat_users.keys())
+
+        if len(best_users) < 3:
+            logger.info(f"best_users > 3")
+            del avg_by_category[best_cat_id]
+            continue
+        elif len(best_users) > 3:
+            logger.error(f"!!! USERS > 3 !!!")
+            del avg_by_category[best_cat_id]
+            continue
+
+        logger.info(f"done. best_users == 3")
 
         logger.info(
             "users: %s",
@@ -230,18 +246,17 @@ async def select_projects(db_session: AsyncSession, all_projects: list[Project],
 
         return best_projects
 
-    # Если юзеров нет (из-за excluded)
-    else:
 
-        logger.info(f"users/projects is not exist")
-        
-        if not category:
-            # Работаем с категориями
-            logger.info(f"go to work with categories")
-            return await select_projects(db_session, all_projects, latest_battle, excluded_users, True)
-        else: 
-            logger.info(f"return empty list")
-            return []
+    # переписать
+    logger.info(f"users/projects is not exist")
+    
+    if not category:
+        # Работаем с категориями
+        logger.info(f"go to work with categories")
+        return await select_projects(db_session, all_projects, latest_battle, excluded_users, True)
+    else: 
+        logger.info(f"return empty list")
+        return []
 
 
 def deduplicate_projects_by_user(projects: list[Project]) -> list[Project]:
