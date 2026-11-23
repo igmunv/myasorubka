@@ -6,6 +6,7 @@ class Settings(BaseSettings):
 
     admin_bot_token: SecretStr
     public_bot_token: SecretStr
+    manager_bot_token: SecretStr
 
     superuser_tg_id: int
     secret_spons_tg_id: int

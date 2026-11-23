@@ -70,6 +70,20 @@ services:
       postgres:
         condition: service_healthy
 
+  battle_manager:
+    build: ./battle_manager
+    container_name: battle_manager
+    restart: always
+    env_file:
+      - .env
+    volumes:
+      - ./battle_manager:/app/
+      - ./shared:/app/manager_bot/shared/
+      - ./shared:/app/shared
+    depends_on:
+      postgres:
+        condition: service_healthy
+
 
 
 volumes:

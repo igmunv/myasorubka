@@ -166,7 +166,11 @@ async def get_projects_ready_battle(session: AsyncSession) -> list[Project]:
     """ Возвращает проекты готовые к батлу """
     stmt = (
         select(Project)
-        .options(joinedload(Project.user))
+        .options(
+            selectinload(Project.user),
+            selectinload(Project.category),
+            selectinload(Project.sub_category)
+            )
         .where(
             Project.status == ProjectStatus.READY
         )

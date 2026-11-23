@@ -45,6 +45,10 @@ async def select_battle_projects(db_session: AsyncSession) -> list[Project]:
         logger.info(f"return. all_projects is empty")
         return []
 
+    if len(all_projects) < 3:
+        logger.info(f"return. few projects: need >= 3 projects")
+        return []
+
     # Получаем последний батл
     logger.info(f"get latest battle")
     latest_battle: Battle = await get_latest_battle(db_session)
@@ -92,6 +96,19 @@ async def select_projects(db_session: AsyncSession, all_projects: list[Project],
         # Удаляем проекты с этой категорией
         logger.info(f"delete projects by this category: {latest_battle.category_id}")
         by_cat.pop(latest_battle.category_id, None)
+
+    # Оставляем для каждого пользователя только один проект в категории. Т.е удаляем дубликаты
+    logger.info("deduplicating projects: keeping one project per user within each category")
+    for cat_id, projs in by_cat.items():
+        logger.info(f"category {cat_id}: len before deduplicating: {len(projs)}")
+        seen_users: set[User] = set()
+        unique_projects: list[Project] = []
+        for proj in projs:
+            if proj.user not in seen_users:
+                seen_users.add(proj.user)
+                unique_projects.append(proj)
+        logger.info(f"category {cat_id}: len after deduplicating: {len(unique_projects)}")
+        by_cat[cat_id] = unique_projects
 
     # Оставляем только категории где >= 3 проектов
     logger.info(f"filtering categories min projects: need >= 3 projects in category")
@@ -159,7 +176,8 @@ async def select_projects(db_session: AsyncSession, all_projects: list[Project],
         battle_count: dict[User, int] = await get_users_battle_count(db_session, list(projects_authors.values()))
         
         categories_with_authors[cat_id] = battle_count
-    
+        logger.info(f"END ITER")
+
     # Оставляем в каждой категории только 3 пользователя которые меньше всех участвовали в батлах
     logger.info("keeping top 3 users with lowest battle count per category")
     filtered_categories: dict[int, dict[User, int]] = {
@@ -206,8 +224,8 @@ async def select_projects(db_session: AsyncSession, all_projects: list[Project],
         ]
 
         logger.info(
-            "projecs: %s",
-            [{"id": p.id, "username": p.name} for p in best_projects],
+            "projects: %s",
+            [{"id": p.id, "name": p.name} for p in best_projects],
         )
 
         return best_projects
@@ -224,6 +242,18 @@ async def select_projects(db_session: AsyncSession, all_projects: list[Project],
         else: 
             logger.info(f"return empty list")
             return []
+
+
+def deduplicate_projects_by_user(projects: list[Project]) -> list[Project]:
+    seen_users: set[int] = set()
+    unique_projects: list[Project] = []
+
+    for project in projects:
+        if project.user_id not in seen_users:
+            seen_users.add(project.user_id)
+            unique_projects.append(project)
+
+    return unique_projects
         
 
 async def get_users_battle_count(db_session, users: list[User]) -> dict[User, int]:
