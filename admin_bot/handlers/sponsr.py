@@ -23,7 +23,7 @@ from shared.db.requests.project import get_all_projects
 
 from aiogram.filters import Filter
 
-projects_router = Router()
+sponsr_router = Router()
 
 ALLOWED_USER_IDS = [config.superuser_tg_id, config.secret_spons_tg_id]
 ITEMS_PER_PAGE = 3
@@ -34,10 +34,10 @@ class IsAllowedUser(Filter):
     async def __call__(self, message: Message) -> bool:
         return message.from_user.id in ALLOWED_USER_IDS
 
-projects_router.message.filter(IsAllowedUser())
+sponsr_router.message.filter(IsAllowedUser())
 
 
-@projects_router.message(StateFilter(None), F.text == "📁 Проекты")
+@sponsr_router.message(StateFilter(None), F.text == "📁 Проекты")
 async def cmd_projects(message: Message, state: FSMContext, db_session: AsyncSession):
 
     projects = await get_all_projects(session=db_session);
@@ -46,7 +46,7 @@ async def cmd_projects(message: Message, state: FSMContext, db_session: AsyncSes
                     
     
 
-@projects_router.callback_query(F.data == "noop")
+@sponsr_router.callback_query(F.data == "noop")
 async def process_noop(callback: types.CallbackQuery):
     await callback.answer()
 
@@ -133,7 +133,7 @@ async def send_projects_msg(
 
 
 # 2. Обработка переключения страниц (пагинация)
-@projects_router.callback_query(ProjectsPagination.filter())
+@sponsr_router.callback_query(ProjectsPagination.filter())
 async def process_category_pagination(
     callback: types.CallbackQuery, callback_data: ProjectsPagination, db_session: AsyncSession
 ):

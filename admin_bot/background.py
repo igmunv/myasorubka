@@ -4,10 +4,10 @@ import json
 import redis.asyncio as aioredis
 
 from aiogram import Bot
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-import html
 
 from shared.config import config
+
+from messages import send_user_reg_approval_form, send_project_approval_form
 
 
 async def start_moderation_worker(bot: Bot):
@@ -32,33 +32,11 @@ async def start_moderation_worker(bot: Bot):
                     portfolio = data["portfolio"]
                     about = data["about"]
 
-                    # Кнопки для модератора
-                    kb = InlineKeyboardMarkup(inline_keyboard=[
-                        [
-                            InlineKeyboardButton(text="✅ Принять", callback_data=f"mod_registration_approve:{user_id}"),
-                            InlineKeyboardButton(text="❌ Отклонить", callback_data=f"mod_registration_reject:{user_id}")
-                        ]
-                    ])
-
-                    # Отправляем карточку в чат модераторов
-                    await bot.send_message(
-                        chat_id=ADMIN_CHAT_ID,
-                        text=(
-                            f"🚨 <b>Новый участник на мясорубку!</b>\n\n"
-                            f"👤 Имя: <b>{name}</b>\n"
-                            f"🔗 Портфолио: {portfolio}\n"
-                            f"📝 О себе: {about}\n"
-                            f"🆔 ID: <code>{user_id}</code>"
-                        ),
-                        parse_mode="HTML",
-                        reply_markup=kb, 
-                        disable_web_page_preview=True
-                    )
+                    await send_user_reg_approval_form(bot, ADMIN_CHAT_ID, user_id, name, portfolio, about)
 
                 elif _type == "project_submit":
 
                     user_id = data["user_id"]
-                    username = data["username"]
                     project_id = data["project_id"]
                     name = data["name"]
                     link = data["link"]
@@ -68,29 +46,9 @@ async def start_moderation_worker(bot: Bot):
                     cat = data["cat"]
                     scat = data["scat"]
 
-                    # Кнопки для модератора
-                    kb = InlineKeyboardMarkup(inline_keyboard=[
-                        [
-                            InlineKeyboardButton(text="✅ Принять", callback_data=f"mod_project_submit_approve:{user_id}:{project_id}"),
-                            InlineKeyboardButton(text="❌ Отклонить", callback_data=f"mod_project_submit_reject:{user_id}:{project_id}")
-                        ]
-                    ])
-
-                    await bot.send_message(
-                        chat_id=ADMIN_CHAT_ID,
-                        text=(
-                            f"🆕 <b>Новый проект на мясорубку!</b>\n\n"
-                            f'🔢 <b><a href="{html.escape(link)}">{html.escape(name)} — {html.escape(subtitle)}</a></b>\n'
-                            f"<b>👉 Суть: </b>{html.escape(summ)}\n"
-                            f"<b>🔥 Почему круто: </b>{html.escape(uniq)}\n\n"
-                            f"📁 <b>Категория: </b>{html.escape(cat)}\n"
-                            f"🏷️ <b>Подкатегория: </b>{html.escape(scat)}\n"
-                        ),
-                        parse_mode="HTML",
-                        reply_markup=kb, 
-                        disable_web_page_preview=True
-                    )
-
+                    await send_project_approval_form(bot, ADMIN_CHAT_ID, user_id, project_id, 
+                                               link, name, subtitle, summ, uniq, cat, scat
+                                               )
 
         except Exception as e:
             print(f"Ошибка в воркере модерации: {e}")
