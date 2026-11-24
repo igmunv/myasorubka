@@ -1,0 +1,33 @@
+services:
+  migrate:
+    build:
+      context: .
+      dockerfile: ./alembic/Dockerfile
+    volumes:
+      - ./alembic:/app/alembic
+      - ./shared:/app/alembic/shared
+
+  public_bot:
+    build:
+      context: .
+      dockerfile: ./public_bot/Dockerfile
+    volumes:
+      - ./public_bot:/app/bot
+      - ./shared:/app/bot/shared
+
+  admin_bot:
+    build:
+      context: .
+      dockerfile: ./admin_bot/Dockerfile
+    volumes:
+      - ./admin_bot:/app/bot
+      - ./shared:/app/bot/shared
+
+  battle_manager:
+    build:
+      context: .
+      dockerfile: ./battle_manager/Dockerfile
+    volumes:
+      - ./battle_manager:/app/
+      - ./shared:/app/manager_bot/shared/
+      - ./shared:/app/shared

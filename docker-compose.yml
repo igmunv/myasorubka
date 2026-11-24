@@ -42,28 +42,22 @@ services:
       start_period: 5s
 
   migrate:
-    build: ./alembic
+    image: ghcr.io/igmunv/myasorubka-migrate:latest
     container_name: migrate
     restart: "no"
     env_file:
       - .env
-    volumes:
-      - ./alembic:/app/alembic
-      - ./shared:/app/shared
     command: alembic -c /app/alembic/alembic.ini upgrade head
     depends_on:
       postgres:
         condition: service_healthy
 
   public_bot:
-    build: ./public_bot
+    image: ghcr.io/igmunv/myasorubka-public_bot:latest
     container_name: public_bot
     restart: always
     env_file:
       - .env
-    volumes:
-      - ./public_bot:/app/bot
-      - ./shared:/app/bot/shared
     depends_on:
       redis:
         condition: service_healthy
@@ -73,14 +67,11 @@ services:
         condition: service_completed_successfully
 
   admin_bot:
-    build: ./admin_bot
+    image: ghcr.io/igmunv/myasorubka-admin_bot:latest
     container_name: admin_bot
     restart: always
     env_file:
       - .env
-    volumes:
-      - ./admin_bot:/app/bot
-      - ./shared:/app/bot/shared
     depends_on:
       redis:
         condition: service_healthy
@@ -90,22 +81,16 @@ services:
         condition: service_completed_successfully
 
   battle_manager:
-    build: ./battle_manager
+    image: ghcr.io/igmunv/myasorubka-battle_manager:latest
     container_name: battle_manager
     restart: always
     env_file:
       - .env
-    volumes:
-      - ./battle_manager:/app/
-      - ./shared:/app/manager_bot/shared/
-      - ./shared:/app/shared
     depends_on:
       postgres:
         condition: service_healthy
       migrate:
         condition: service_completed_successfully
-
-
 
 volumes:
   redis_data:
