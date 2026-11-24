@@ -9,6 +9,7 @@ fi
 
 docker compose up -d postgres
 docker compose run --rm migrate alembic -c /app/alembic/alembic.ini revision --autogenerate -m "$1"
+sudo chown -R "$USER:$USER" alembic/alembic/versions
 
 # Если запускаешь впервые на БД с существующими таблицами:
 # docker compose run --rm migrate alembic -c /app/alembic/alembic.ini stamp head
