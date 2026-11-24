@@ -1,6 +1,14 @@
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from sqlalchemy.orm import DeclarativeBase
 
+import importlib
+import pkgutil
+
+import shared.db.models as models_pkg
+
+for _, module_name, _ in pkgutil.iter_modules(models_pkg.__path__):
+    importlib.import_module(f"{models_pkg.__name__}.{module_name}")
+
 from shared.config import config
 
 DATABASE_URL = (
@@ -14,8 +22,3 @@ DATABASE_URL = (
 
 engine = create_async_engine(DATABASE_URL, echo=False)
 async_session_maker = async_sessionmaker(engine, expire_on_commit=False)
-
-
-async def init_db(base: type[DeclarativeBase]) -> None:
-    async with engine.begin() as conn:
-        await conn.run_sync(base.metadata.create_all)

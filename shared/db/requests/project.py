@@ -2,7 +2,7 @@ from typing import Optional
 
 from sqlalchemy import desc, func, not_, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
+from sqlalchemy.orm import selectinload, joinedload
 
 from shared.db.models.hallfame import HallOfFame
 from shared.db.models.project import Category, Project, ProjectStatus, SubCategory
@@ -150,12 +150,30 @@ async def get_hof_projects(session: AsyncSession) -> list[HallOfFame]:
 
 
 async def get_all_projects(session: AsyncSession) -> list[Project]:
+    """ Возвращает проекты прошедшие модерацию """
     stmt = (
         select(Project)
         .where(
             not_(Project.status.in_([ProjectStatus.FAIL, ProjectStatus.WAIT]))
         )
         .order_by(desc(Project.created_at))  # Сортировка по убыванию (новые сверху)
+    )
+    result = await session.execute(stmt)
+    return result.scalars().all()
+
+
+async def get_projects_ready_battle(session: AsyncSession) -> list[Project]:
+    """ Возвращает проекты готовые к батлу """
+    stmt = (
+        select(Project)
+        .options(
+            selectinload(Project.user),
+            selectinload(Project.category),
+            selectinload(Project.sub_category)
+            )
+        .where(
+            Project.status == ProjectStatus.READY
+        )
     )
     result = await session.execute(stmt)
     return result.scalars().all()

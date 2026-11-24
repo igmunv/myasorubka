@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from shared.db.models.user import User
+    from shared.db.models.battle import BattleProject
 
 
 class ProjectStatus(str, enum.Enum):
@@ -86,3 +87,7 @@ class Project(Base):
     user: Mapped["User"] = relationship(back_populates="projects")
     category: Mapped["Category"] = relationship(back_populates="projects")
     sub_category: Mapped["SubCategory"] = relationship(back_populates="projects")
+
+    battle_links: Mapped[list["BattleProject"]] = relationship(
+        back_populates="project"
+    )
