@@ -1,6 +1,7 @@
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from sqlalchemy.orm import DeclarativeBase
-import shared.db.models.battle
+
+from shared.db.models import battle, hallfame, moderation, project, user # noqa: E402, F401
 
 from shared.config import config
 

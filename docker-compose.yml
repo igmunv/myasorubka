@@ -3,6 +3,7 @@ services:
 
   postgres:
     image: postgres:15-alpine
+    container_name: postgres
     restart: always
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
@@ -40,6 +41,20 @@ services:
       retries: 3
       start_period: 5s
 
+  migrate:
+    build: ./alembic
+    container_name: migrate
+    restart: "no"
+    env_file:
+      - .env
+    volumes:
+      - ./alembic:/app/alembic
+      - ./shared:/app/shared
+    command: alembic -c /app/alembic/alembic.ini upgrade head
+    depends_on:
+      postgres:
+        condition: service_healthy
+
   public_bot:
     build: ./public_bot
     container_name: public_bot
@@ -54,6 +69,8 @@ services:
         condition: service_healthy
       postgres:
         condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
 
   admin_bot:
     build: ./admin_bot
@@ -69,6 +86,8 @@ services:
         condition: service_healthy
       postgres:
         condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
 
   battle_manager:
     build: ./battle_manager
@@ -83,6 +102,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
 
 
 
