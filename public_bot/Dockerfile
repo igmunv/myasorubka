@@ -1,12 +1,11 @@
 FROM python:3.11-slim
 
-WORKDIR /app
+WORKDIR /app/bot
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential \
-    && rm -rf /var/lib/apt/lists/*
-
-COPY requirements.txt .
+COPY public_bot/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-CMD ["python", "bot/main.py"]
+COPY public_bot/ .
+COPY shared/ ./shared/
+
+CMD ["python", "main.py"]
