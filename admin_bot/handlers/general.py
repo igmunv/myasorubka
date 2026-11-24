@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.config import config
 
-from keyboards import get_main_sponsr_keyboard
+from keyboards import get_main_sponsr_keyboard, get_main_admin_keyboard
 from aiogram.filters import Filter
 
 general_router = Router()
@@ -24,4 +24,8 @@ general_router.message.filter(IsAllowedUser())
 
 @general_router.message(CommandStart())
 async def cmd_start(message: Message, state: FSMContext, db_session: AsyncSession):
-    await message.answer(f"💚 Я жив", reply_markup=get_main_sponsr_keyboard())
+    if message.from_user.id == config.superuser_tg_id:
+        await message.answer(f"💚 Я жив", reply_markup=get_main_admin_keyboard())
+
+    else:
+        await message.answer(f"💚 Я жив", reply_markup=get_main_sponsr_keyboard())

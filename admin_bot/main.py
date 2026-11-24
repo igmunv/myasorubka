@@ -5,8 +5,9 @@ from aiogram import Bot, Dispatcher
 from aiogram.fsm.storage.redis import RedisStorage, DefaultKeyBuilder
 from aiogram.client.session.aiohttp import AiohttpSession
 
-from handlers.user import admin_router
-from handlers.projects import projects_router
+from handlers.moderation import moderation_router
+from handlers.getters import getters_router
+from handlers.sponsr import sponsr_router
 from handlers.general import general_router
 
 from middlewares.db import DBSessionMiddleware
@@ -32,8 +33,9 @@ async def main():
 
     dp.update.middleware(DBSessionMiddleware())
 
-    dp.include_router(admin_router)
-    dp.include_router(projects_router)
+    dp.include_router(moderation_router)
+    dp.include_router(getters_router)
+    dp.include_router(sponsr_router)
     dp.include_router(general_router)
 
     asyncio.create_task(start_moderation_worker(bot))

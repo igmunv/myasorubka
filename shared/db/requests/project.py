@@ -177,3 +177,19 @@ async def get_projects_ready_battle(session: AsyncSession) -> list[Project]:
     )
     result = await session.execute(stmt)
     return result.scalars().all()
+
+
+async def get_next_waiting_project(session: AsyncSession) -> Optional[Project]:
+    stmt = (
+        select(Project)
+        .options(
+            selectinload(Project.user),
+            selectinload(Project.category),
+            selectinload(Project.sub_category),
+        )
+        .where(Project.status == ProjectStatus.WAIT)
+        .order_by(Project.created_at.asc(), Project.id.asc())
+        .limit(1)
+    )
+    result = await session.execute(stmt)
+    return result.scalar_one_or_none()

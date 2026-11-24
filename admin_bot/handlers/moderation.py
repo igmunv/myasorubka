@@ -26,7 +26,7 @@ from keyboards import get_main_sponsr_keyboard
 
 from aiogram.filters import Filter
 
-admin_router = Router()
+moderation_router = Router()
 
 
 ALLOWED_USER_IDS = [config.superuser_tg_id]
@@ -38,8 +38,9 @@ class IsAllowedUser(Filter):
     async def __call__(self, message: Message) -> bool:
         return message.from_user.id in ALLOWED_USER_IDS
 
+moderation_router.message.filter(IsAllowedUser())
 
-@admin_router.callback_query(F.data.startswith("mod_registration_"))
+@moderation_router.callback_query(F.data.startswith("mod_registration_"))
 async def process_reg_moderation_callback(callback: CallbackQuery, state: FSMContext, db_session: AsyncSession):
     action, user_id_str = callback.data.split(":")
     user_id = int(user_id_str)
@@ -77,7 +78,7 @@ async def process_reg_moderation_callback(callback: CallbackQuery, state: FSMCon
         await callback.message.answer("📝 <b>Напиши причину:</b>", parse_mode="HTML")
 
 
-@admin_router.message(RegRejectedState.waiting_for_reason)
+@moderation_router.message(RegRejectedState.waiting_for_reason)
 async def process_reg_reason(message: Message, state: FSMContext, db_session: AsyncSession):
 
     if message.text:
@@ -118,7 +119,7 @@ async def process_reg_reason(message: Message, state: FSMContext, db_session: As
             await state.clear()
 
 
-@admin_router.callback_query(F.data.startswith("mod_project_submit_"))
+@moderation_router.callback_query(F.data.startswith("mod_project_submit_"))
 async def process_projsub_moderation_callback(callback: CallbackQuery, state: FSMContext, db_session: AsyncSession):
     action, user_id_str, project_id_str = callback.data.split(":")
     user_id = int(user_id_str)
@@ -162,7 +163,7 @@ async def process_projsub_moderation_callback(callback: CallbackQuery, state: FS
             await callback.message.answer("📝 <b>Напиши причину:</b>", parse_mode="HTML")
 
 
-@admin_router.message(ProjSubmitRejectState.waiting_for_reason)
+@moderation_router.message(ProjSubmitRejectState.waiting_for_reason)
 async def process_projsub_reason(message: Message, state: FSMContext, db_session: AsyncSession):
 
     if message.text:
