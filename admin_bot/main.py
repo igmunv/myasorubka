@@ -15,14 +15,9 @@ from shared.config import config
 
 from background import start_moderation_worker
 
-from shared.db.conn import init_db
-from shared.db.models.base import Base
-
 async def main():
 
     logging.basicConfig(level=logging.INFO)
-
-    await init_db(Base)
     
     storage = RedisStorage.from_url(
         f"redis://default:{config.redis_password.get_secret_value()}@redis:6379/0",

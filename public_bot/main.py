@@ -5,8 +5,7 @@ from aiogram import Bot, Dispatcher
 from aiogram.fsm.storage.redis import RedisStorage, DefaultKeyBuilder
 from aiogram.client.session.aiohttp import AiohttpSession
 
-from shared.db.conn import init_db, async_session_maker
-from shared.db.models.base import Base
+from shared.db.conn import async_session_maker
 from database.init_categories import sync_categories as sync_db_cats
 
 from handlers.general import general_router
@@ -24,8 +23,6 @@ from background import start_notification_worker
 async def main():
 
     logging.basicConfig(level=logging.INFO)
-
-    await init_db(Base)
 
     async with async_session_maker() as session:
         await sync_db_cats(session)
