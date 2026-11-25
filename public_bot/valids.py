@@ -11,11 +11,14 @@ LINK_OR_MENTION_RE = re.compile(
 )
 CYRILLIC_LOWER_RE = re.compile(r"^[а-яё]")
 
-def normalize_text(text: str, capitalize_leading_ru: bool = True) -> str:
+def normalize_text(text: str, capitalize_leading_ru: bool = True, ensure_trailing_dot: bool = True) -> str:
     """Убирает невидимые символы, схлопывает пробелы и табы, но сохраняет переносы для валидации."""
     cleaned = INVISIBLE_CHARS_RE.sub("", text)
     cleaned = HORIZONTAL_SPACE_RE.sub(" ", cleaned).strip()
     cleaned = cleaned.rstrip(".").strip()
+
+    if ensure_trailing_dot and cleaned:
+        cleaned = f"{cleaned}."
 
     if capitalize_leading_ru and CYRILLIC_LOWER_RE.match(cleaned):
         cleaned = cleaned[0].upper() + cleaned[1:]
