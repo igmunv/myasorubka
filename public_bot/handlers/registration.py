@@ -125,7 +125,7 @@ async def process_name(message: Message, state: FSMContext):
         )
         return
 
-    clean_name = normalize_text(message.text, lowercase_leading_ru=False)
+    clean_name = normalize_text(message.text, capitalize_leading_ru=False)
     error_reason = validate_text(clean_name, min_len=MIN_NAME_SIZE, max_len=MAX_NAME_SIZE)
 
     if error_reason:
