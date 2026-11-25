@@ -288,7 +288,7 @@ async def process_name(message: Message, state: FSMContext):
                             parse_mode="HTML")
         return
     
-    clean_text = normalize_text(message.text, capitalize_leading_ru=False)
+    clean_text = normalize_text(message.text, capitalize_leading_ru=False, ensure_trailing_dot=False)
     error_reason = validate_text(clean_text, MIN_PROJ_NAME_SIZE, MAX_PROJ_NAME_SIZE)
 
     if error_reason:
@@ -340,7 +340,7 @@ async def process_subtitle(message: Message, state: FSMContext):
             parse_mode="HTML")
         return
 
-    clean_text = normalize_text(message.text)
+    clean_text = normalize_text(message.text, ensure_trailing_dot=False)
     error_reason = validate_text(clean_text, MIN_PROJ_SUBTITLE_SIZE, MAX_PROJ_SUBTITLE_SIZE)
 
     if error_reason:
