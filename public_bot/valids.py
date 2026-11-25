@@ -9,12 +9,18 @@ LINK_OR_MENTION_RE = re.compile(
     r"(https?://\S+|www\.\S+|t\.me/\S+|@[a-zA-Z0-9_]{3,})",
     re.IGNORECASE,
 )
+CYRILLIC_SINGLE_UPPER_RE = re.compile(r"^[А-ЯЁ](?![А-ЯЁ])")
 
-def normalize_text(text: str) -> str:
+def normalize_text(text: str, lowercase_leading_ru: bool = True) -> str:
     """Убирает невидимые символы, схлопывает пробелы и табы, но сохраняет переносы для валидации."""
     cleaned = INVISIBLE_CHARS_RE.sub("", text)
-    cleaned = HORIZONTAL_SPACE_RE.sub(" ", cleaned)
-    return cleaned.strip()
+    cleaned = HORIZONTAL_SPACE_RE.sub(" ", cleaned).strip()
+    cleaned = cleaned.rstrip(".").strip()
+
+    if lowercase_leading_ru and CYRILLIC_SINGLE_UPPER_RE.match(cleaned):
+        cleaned = cleaned[0].lower() + cleaned[1:]
+
+    return cleaned
 
 
 def validate_text(text: str, min_len: int, max_len: int,forbid_links: bool = True,) -> str | None:

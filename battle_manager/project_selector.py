@@ -31,7 +31,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-async def select_battle_projects(db_session: AsyncSession) -> list[Project]:
+async def select_battle_projects(db_session: AsyncSession) -> dict:
     """ Выбирает и возвращает три проекта для батла. Выбор происходит на основе множества критериев"""
 
     logger.info("start select battle projects")
@@ -65,8 +65,11 @@ async def select_battle_projects(db_session: AsyncSession) -> list[Project]:
         excluded_users: set[User] = set()
 
     logger.info(f"call select_projects()")
+
     # здесь надо по другому. должны будут менять valid_strictness
-    return await select_projects(db_session, all_projects, latest_battle, excluded_users)
+    projects: dict = await select_projects(db_session, all_projects, latest_battle, excluded_users)
+
+    return projects
 
 
 async def select_projects(db_session: AsyncSession, all_projects: list[Project], latest_battle: Battle, excluded_users: set[User], category: bool=False, valid_strictness: int=0):
@@ -137,7 +140,7 @@ async def select_projects(db_session: AsyncSession, all_projects: list[Project],
             return await select_projects(db_session, all_projects, latest_battle, excluded_users, True)
         else: 
             logger.info(f"return empty list")
-            return []
+            return {}
 
     # Получаем сколько раз каждая категория участвовала в батлах
     logger.info("counting battle appearances per category")
@@ -244,7 +247,7 @@ async def select_projects(db_session: AsyncSession, all_projects: list[Project],
             [{"id": p.id, "name": p.name} for p in best_projects],
         )
 
-        return best_projects
+        return {"projects": best_projects, "flag_category": category}
 
 
     # переписать
@@ -256,7 +259,7 @@ async def select_projects(db_session: AsyncSession, all_projects: list[Project],
         return await select_projects(db_session, all_projects, latest_battle, excluded_users, True)
     else: 
         logger.info(f"return empty list")
-        return []
+        return {}
 
 
 def deduplicate_projects_by_user(projects: list[Project]) -> list[Project]:
