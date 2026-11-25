@@ -6,8 +6,7 @@ from aiogram.filters import StateFilter
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-import validators
-import json
+import json, html
 
 from states import RegistrationState
 
@@ -15,14 +14,23 @@ from shared.db.models.user import User, UserStatus
 
 import redis.asyncio as aioredis
 
-from keyboards import get_main_keyboard, send_cancel_keyboard, get_go_keyboard
+from keyboards import get_main_keyboard, send_cancel_keyboard, get_go_keyboard, get_yes_no_keyboard
 
 from shared.config import config
+
+from valids import normalize_text, validate_text, validate_project_url, normalize_portfolio_url
 
 
 registration_router = Router()
 
 redis_client = aioredis.from_url(f"redis://default:{config.redis_password.get_secret_value()}@redis:6379/0")
+
+
+MAX_NAME_SIZE = 32
+MIN_NAME_SIZE = 3
+
+MAX_ABOUT_SIZE = 250
+MIN_ABOUT_SIZE = 40
 
 
 @registration_router.message(RegistrationState(), F.text == "❌ Отмена")
@@ -110,103 +118,155 @@ async def process_retry_registration(callback: types.CallbackQuery, state: FSMCo
 @registration_router.message(RegistrationState.waiting_for_name)
 async def process_name(message: Message, state: FSMContext):
 
-    if message.text:
+    if not message.text:
+        await message.answer(
+            "❗️ <b>Не увидел имени</b>\n\nПопробуй ввести ещё раз:",
+            parse_mode="HTML",
+        )
+        return
 
-        name = message.text.strip()
+    clean_name = normalize_text(message.text)
+    error_reason = validate_text(clean_name, min_len=MIN_NAME_SIZE, max_len=MAX_NAME_SIZE)
 
-        if len(name) > 32:
-            await message.answer("❗️ <b>Имя слишком длинное (максимум 32 символа)</b>\n\nПопробуй ввести ещё раз:",
-                                parse_mode="HTML")
-        elif len(name) < 3:
-            await message.answer("❗️ <b>Имя слишком короткое (минимум 3 символа)</b>\n\nПопробуй ввести ещё раз:",
-                                parse_mode="HTML")
-        else:
-            await state.update_data(name=name)
-            await state.set_state(RegistrationState.waiting_for_portfolio)
-            await message.answer("2️⃣ <b>Ссылка на тебя (ТГ-канал, GitHub, сайт и т.п.):</b>",
-                                parse_mode="HTML")
+    if error_reason:
+        await message.answer(
+            f"❗️ <b>Не могу принять ответ:</b> {error_reason}\n\nПопробуй ещё раз:",
+            parse_mode="HTML",
+        )
+        return
 
-    else:
-        await message.answer("❗️ <b>Не увидел имени</b>\n\nПопробуй ввести ещё раз:",
-                            parse_mode="HTML")
+    await state.update_data(name=clean_name)
+    await state.set_state(RegistrationState.waiting_for_portfolio)
+    await message.answer(
+        "2️⃣ <b>Ссылка на тебя (ТГ-канал, GitHub, сайт и т.п.):</b>",
+        parse_mode="HTML",
+    )
 
 
 @registration_router.message(RegistrationState.waiting_for_portfolio)
 async def process_portfolio(message: Message, state: FSMContext):
+    if not message.text:
+        await message.answer(
+            "❗️ <b>Не увидел ссылку</b>\n\nПопробуй отправить ещё раз:",
+            parse_mode="HTML",
+        )
+        return
 
-    if message.text:
+    normalized_url = normalize_portfolio_url(message.text)
+    error_reason = validate_project_url(normalized_url)
 
-        url = message.text.strip()
-    
-        if validators.url(url):
-            await state.update_data(portfolio=url)
-            await state.set_state(RegistrationState.waiting_for_about)
-            await message.answer("3️⃣ <b>Пару слов о себе (опыт, чем занимаешься, стек):</b>",
-                                            parse_mode="HTML")
+    if error_reason:
+        await message.answer(
+            f"❗️ <b>Не могу принять ссылку:</b> {error_reason}\n\nПопробуй ещё раз:",
+            parse_mode="HTML",
+        )
+        return
 
-        else:
-            await message.answer("❗️ <b>Это не ссылка</b>\n\nПопробуй ещё раз:",
-                                parse_mode="HTML")
-    else:
-        await message.answer("❗️ <b>Не увидел ссылку</b>\n\nПопробуй отправить ещё раз:",
-                            parse_mode="HTML")
+    await state.update_data(portfolio=normalized_url)
+    await state.set_state(RegistrationState.waiting_for_about)
+    await message.answer(
+        "3️⃣ <b>Пару слов о себе (опыт, чем занимаешься, стек):</b>",
+        parse_mode="HTML",
+    )
+
 
 @registration_router.message(RegistrationState.waiting_for_about)
 async def process_about(message: Message, state: FSMContext, db_session: AsyncSession, user: User):
 
-    if message.text:
+    if not message.text:
+        await message.answer(
+            "❗️ <b>Не увидел текст</b>\n\nПопробуй ввести ещё раз:",
+            parse_mode="HTML",
+        )
+        return
 
-        about = message.text.strip()
+    clean_about = normalize_text(message.text)
+    error_reason = validate_text(clean_about, min_len=MIN_ABOUT_SIZE, max_len=MAX_ABOUT_SIZE)
 
-        if len(about) > 250:
-            await message.answer("❗️ <b>Слишком много текста (максимум 250 символов)</b>\n\n" \
-                                "Постарайся уложиться в короткую и емкую визитку — именно её увидят подписчики в случае победы!" \
-                                "Попробуй ещё раз:",
-                                parse_mode="HTML")
-        elif len(about) < 15:
-            await message.answer("❗️ <b>Слишком коротко (минимум 15 символов)</b>\n\n" \
-                                "Расскажи о себе чуть подробнее. Не забывай: если твой проект победит, эта визитка будет в посте на канале!\n\n" \
-                                "Попробуй ещё раз:",
-                                parse_mode="HTML")
-        else:
-            user_data = await state.get_data()
-            name = user_data["name"]
-            portfolio = user_data["portfolio"]
+    if error_reason:
+        await message.answer(
+            f"❗️ <b>Не могу принять ответ:</b> {error_reason}\n\nПопробуй ещё раз:",
+            parse_mode="HTML",
+        )
+        return
+    
+    user_data = await state.get_data()
+    name = user_data["name"]
+    portfolio = user_data["portfolio"]
 
-            await state.clear()
+    await state.update_data(about=clean_about)
+    await state.set_state(RegistrationState.waiting_for_check)
 
-            if user:
-                user.name = name
-                user.portfolio = portfolio
-                user.about = about
-                user.status = UserStatus.WAIT
+    await message.answer(
 
-            else:
-                user = User(
-                    id=message.from_user.id,
-                    name=name,
-                    portfolio=portfolio,
-                    about=about,
-                    status=UserStatus.WAIT
+        f"Твоя карточка при выигрыше будет выглядеть вот так 👇\n\n"
+        f'<blockquote>🏆 <b>Победитель МЯСОРУБКИ #123</b>\n\n'
+        f"Здесь будет описание твоего проекта...\n\n"
+        f"🥇 <b>Автор:</b> {html.escape(name)}\n"
+        f"💬 <b>О себе:</b> {html.escape(clean_about)}\n"
+        f'<b><a href="{html.escape(portfolio)}">🔗 Найти меня можно здесь</a></b>\n\n'
+        f'⭐️ <b>Давайте поддержим автора и его проект!</b></blockquote>\n\n'
+        f"🔍 Проверь, всё верно?",
+
+        parse_mode="HTML", disable_web_page_preview=True, reply_markup=get_yes_no_keyboard())
+
+
+@registration_router.callback_query(RegistrationState.waiting_for_check, F.data == "confirm_no")
+async def process_no_check_confirm(callback: types.CallbackQuery, state: FSMContext, db_session: AsyncSession, user: User):
+
+    await callback.answer()
+
+    await callback.message.edit_text("🔁 <b>Давай попробуем ещё раз</b>\n\n",
+                                        parse_mode="HTML")
+    
+    await state.set_state(RegistrationState.waiting_for_name)
+    
+    await callback.message.answer(
+                "1️⃣ <b>Твоё имя или никнейм:</b>",
+                parse_mode="HTML"
                 )
-                db_session.add(user)
 
-            await db_session.commit()
+    
+@registration_router.callback_query(RegistrationState.waiting_for_check, F.data == "confirm_yes")
+async def process_yes_check_confirm(callback: types.CallbackQuery, state: FSMContext, db_session: AsyncSession, user: User):
 
-            payload = json.dumps({
-                "_type": "registration",
-                "user_id": message.from_user.id,
-                "name": user_data["name"],
-                "portfolio": user_data["portfolio"],
-                "about": about
-            })
-            await redis_client.lpush("public_admin_moder_queue", payload)
+    user_data = await state.get_data()
+    name = user_data["name"]
+    portfolio = user_data["portfolio"]
+    about = user_data["about"]
 
-            await message.answer("⏳ <b>Отправлено на модерацию</b>\n\n" \
-                                "Проверяем профиль. После проверки — сможешь скинуть свой проект на мясорубку!",
-                                parse_mode="HTML",
-                                reply_markup=get_main_keyboard())
+    await callback.answer()
+
+    if user:
+        user.name = name
+        user.portfolio = portfolio
+        user.about = about
+        user.status = UserStatus.WAIT
 
     else:
-        await message.answer("❗️ <b>Не увидел текст</b>\n\nПопробуй ввести ещё раз:",
-                            parse_mode="HTML")
+        user = User(
+            id=callback.from_user.id,
+            name=name,
+            portfolio=portfolio,
+            about=about,
+            status=UserStatus.WAIT
+        )
+        db_session.add(user)
+
+    await db_session.commit()
+
+    payload = json.dumps({
+        "_type": "registration",
+        "user_id": callback.from_user.id,
+        "name": user_data["name"],
+        "portfolio": user_data["portfolio"],
+        "about": about
+    })
+    await redis_client.lpush("public_admin_moder_queue", payload)
+
+    await state.clear()
+
+    await callback.message.answer("⏳ <b>Отправлено на модерацию</b>\n\n" \
+                        "Проверяем профиль. После проверки — сможешь скинуть свой проект на мясорубку!",
+                        parse_mode="HTML",
+                        reply_markup=get_main_keyboard())
