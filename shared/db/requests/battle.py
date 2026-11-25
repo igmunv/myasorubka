@@ -1,10 +1,56 @@
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
+from sqlalchemy import update
 
+from shared.db.models.project import Project, ProjectStatus
 from shared.db.models.battle import Battle, BattleProject
 from shared.db.models.user import User
 from shared.db.models.project import Project
+
+import datetime
+from collections.abc import Sequence
+
+
+async def create_battle(
+    session: AsyncSession,
+    number: int,
+    link: str,
+    category_id: int,
+    project_ids: Sequence[int],
+    theme: str | None = None,
+    sub_category_id: int | None = None,
+    date: datetime.date | None = None,
+) -> Battle:
+    battle_date = date if date is not None else datetime.date.today()
+    unique_project_ids = list(dict.fromkeys(project_ids))
+
+    battle = Battle(
+        number=number,
+        date=battle_date,
+        link=link,
+        theme=theme,
+        category_id=category_id,
+        sub_category_id=sub_category_id,
+        project_links=[
+            BattleProject(project_id=project_id)
+            for project_id in unique_project_ids
+        ],
+    )
+
+    session.add(battle)
+
+    if unique_project_ids:
+        await session.execute(
+            update(Project)
+            .where(Project.id.in_(unique_project_ids))
+            .values(status=ProjectStatus.ON_BATTLE)
+        )
+
+    await session.flush()
+    await session.commit()
+    await session.refresh(battle)
+    return battle
 
 
 async def get_latest_battle(session: AsyncSession) -> Battle | None:
