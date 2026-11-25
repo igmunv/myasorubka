@@ -1,6 +1,6 @@
 import project_selector
 
-from shared.db.conn import init_db, async_session_maker
+from shared.db.conn import async_session_maker
 from shared.db.models.base import Base
 from shared.db.models.project import Project
 

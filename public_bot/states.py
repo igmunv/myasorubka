@@ -5,6 +5,7 @@ class RegistrationState(StatesGroup):
     waiting_for_name = State()
     waiting_for_portfolio = State()
     waiting_for_about = State()
+    waiting_for_check = State()
 
 class ProjectSubmitState(StatesGroup):
     waiting_for_start = State()

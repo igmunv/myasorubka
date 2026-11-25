@@ -17,21 +17,28 @@ import redis.asyncio as aioredis
 
 from shared.config import config
 
-import validators
 import json
 
 from keyboards import CategoryPagination, SubCategoryPagination, CategorySelect, SubCategorySelect
 from keyboards import get_cancel_keyboard, get_categories_keyboard, get_yes_no_keyboard, get_main_keyboard, get_go_keyboard, get_registration_button, get_my_projects_button
 
+from valids import normalize_text, validate_text, normalize_url, validate_project_url
 
 project_submit_router = Router()
 
 redis_client = aioredis.from_url(f"redis://default:{config.redis_password.get_secret_value()}@redis:6379/0")
 
 MAX_PROJ_NAME_SIZE = 20
+MIN_PROJ_NAME_SIZE = 3
+
 MAX_PROJ_SUBTITLE_SIZE = 50
+MIN_PROJ_SUBTITLE_SIZE = 5
+
 MAX_PROJ_SUMM_SIZE = 120
+MIN_PROJ_SUMM_SIZE = 20
+
 MAX_PROJ_UNIQ_SIZE = 120
+MIN_PROJ_UNIQ_SIZE = 20
 
 ITEMS_PER_PAGE = 4
 
@@ -184,6 +191,7 @@ async def process_category_select(
                          reply_markup=get_yes_no_keyboard(), parse_mode="HTML")
     await callback.answer()
 
+
 @project_submit_router.callback_query(ProjectSubmitState.waiting_for_category_confirm, F.data == "confirm_yes")
 async def process_yes_category_confirm(callback: types.CallbackQuery, state: FSMContext, db_session: AsyncSession):
 
@@ -275,139 +283,136 @@ async def process_no_sub_category_confirm(callback: types.CallbackQuery, state: 
 @project_submit_router.message(ProjectSubmitState.waiting_for_name)
 async def process_name(message: Message, state: FSMContext):
 
-    if message.text:
-
-        name = message.text.strip()
-
-        if len(name) > MAX_PROJ_NAME_SIZE:
-            await message.answer(f"❗️ <b>Название слишком длинное (максимум {MAX_PROJ_NAME_SIZE} симв.)</b>\n\nПопробуй ввести ещё раз:",
-                                parse_mode="HTML")
-        elif len(name) < 3:
-            await message.answer("❗️ <b>Название слишком короткое (минимум 3 символа)</b>\n\nПопробуй ввести ещё раз:",
-                                parse_mode="HTML")
-        else:
-            await state.update_data(name=name)
-            await state.set_state(ProjectSubmitState.waiting_for_link)
-            await message.answer("4️⃣ <b>Ссылка на проект (репозиторий, сайт):</b>",
-                                parse_mode="HTML")
-
-    else:
-        await message.answer("❗️ <b>Не увидел название</b>\n\nПопробуй ввести ещё раз:",
+    if not message.text:
+        await message.answer("❗️ <b>Не увидел название</b>\n\nПопробуй ввести ещё раз",
                             parse_mode="HTML")
+        return
+    
+    clean_text = normalize_text(message.text)
+    error_reason = validate_text(clean_text, MIN_PROJ_NAME_SIZE, MAX_PROJ_NAME_SIZE)
+
+    if error_reason:
+        await message.answer(
+            f"❗️ <b>Не могу принять ответ:</b> {error_reason}\n\nПопробуй ещё раз",
+            parse_mode="HTML")
+        return
+
+    await state.update_data(name=clean_text)
+    await state.set_state(ProjectSubmitState.waiting_for_link)
+    await message.answer("4️⃣ <b>Ссылка на проект (репозиторий, сайт):</b>",
+                        parse_mode="HTML")
 
 
 @project_submit_router.message(ProjectSubmitState.waiting_for_link)
 async def process_link(message: Message, state: FSMContext):
+    if not message.text:
+        await message.answer(
+            "❗️ <b>Не увидел ссылку</b>\n\nПопробуй отправить ещё раз:",
+            parse_mode="HTML",
+        )
+        return
 
-    if message.text:
-    
-        link = message.text.strip()
-    
-        if validators.url(link):
-            await state.update_data(link=link)
-            await state.set_state(ProjectSubmitState.waiting_for_subtitle)
-            await message.answer('5️⃣ <b>Подзаголовок (пример: "монолитное ядро", "мессенджер с ИИ"):</b>',
-                                parse_mode="HTML")
+    normalized_url = normalize_url(message.text)
+    error_reason = validate_project_url(normalized_url)
 
-        else:
-            await message.answer("❗️ <b>Это не ссылка</b>\n\nПопробуй ещё раз:",
-                                parse_mode="HTML")
+    if error_reason:
+        await message.answer(
+            f"❗️ <b>Не могу принять ответ:</b> {error_reason}\n\n"
+            "Попробуй ещё раз",
+            parse_mode="HTML",
+        )
+        return
 
-    else:
-        await message.answer("❗️ <b>Не увидел ссылку</b>\n\nПопробуй отправить ещё раз:",
-                            parse_mode="HTML")
+    await state.update_data(link=normalized_url)
+    await state.set_state(ProjectSubmitState.waiting_for_subtitle)
+    await message.answer(
+        '5️⃣ <b>Подзаголовок (пример: "монолитное ядро", "мессенджер с ИИ"):</b>',
+        parse_mode="HTML",
+    )
 
 
 @project_submit_router.message(ProjectSubmitState.waiting_for_subtitle)
 async def process_subtitle(message: Message, state: FSMContext):
-    if message.text:
-    
-        subtitle = message.text.strip()
 
-        if len(subtitle) > MAX_PROJ_SUBTITLE_SIZE:
-            await message.answer(f"❗️ <b>Подзаголовок слишком длинный (максимум {MAX_PROJ_SUBTITLE_SIZE} симв.)</b>\n\nПопробуй ввести ещё раз:",
-                                parse_mode="HTML")
-        elif len(subtitle) < 5:
-            await message.answer("❗️ <b>Подзаголовок слишком короткий (минимум 5 символов)</b>\n\nПопробуй ввести ещё раз:",
-                                parse_mode="HTML")
-        else:
-            await state.update_data(subtitle=subtitle)
-            await state.set_state(ProjectSubmitState.waiting_for_summary)
-            await message.answer("6️⃣ <b>В чем суть проекта:</b>",
-                                    parse_mode="HTML")
-            
-    else:
-        await message.answer("❗️ <b>Не увидел подзаголовок</b>\n\nПопробуй ввести ещё раз:",
+    if not message.text:
+        await message.answer(
+            "❗️ <b>Не увидел подзаголовок</b>\n\nПопробуй ввести ещё раз:",
+            parse_mode="HTML")
+        return
+
+    clean_text = normalize_text(message.text)
+    error_reason = validate_text(clean_text, MIN_PROJ_SUBTITLE_SIZE, MAX_PROJ_SUBTITLE_SIZE)
+
+    if error_reason:
+        await message.answer(
+            f"❗️ <b>Не могу принять ответ:</b> {error_reason}\n\nПопробуй ещё раз",
+            parse_mode="HTML")
+        return
+    
+    await state.update_data(subtitle=clean_text)
+    await state.set_state(ProjectSubmitState.waiting_for_summary)
+    await message.answer("6️⃣ <b>В чем суть проекта:</b>",
                             parse_mode="HTML")
 
 
 @project_submit_router.message(ProjectSubmitState.waiting_for_summary)
 async def process_summary(message: Message, state: FSMContext, db_session: AsyncSession):
 
-    if message.text:
+    if not message.text:
+        await message.answer(
+            "❗️ <b>Не увидел текст</b>\n\nПопробуй ввести ещё раз:",
+            parse_mode="HTML")
+        return
 
-        summary = message.text.strip()
+    clean_text = normalize_text(message.text)
+    error_reason = validate_text(clean_text, MIN_PROJ_SUMM_SIZE, MAX_PROJ_SUMM_SIZE)
 
-        if len(summary) > MAX_PROJ_SUMM_SIZE:
-            await message.answer(f"❗️ <b>Слишком много текста (максимум {MAX_PROJ_SUMM_SIZE} симв.)</b>\n\n" \
-                                "Постарайся уложиться в короткое и емкое описание — его увидят подписчики\n\n" \
-                                "Попробуй ещё раз:",
-                                parse_mode="HTML")
-        elif len(summary) < 15:
-            await message.answer("❗️ <b>Слишком коротко (минимум 15 символов)</b>\n\n" \
-                                "Расскажи о сути проекта чуть подробнее. Не забывай: это увидят подписчики\n\n" \
-                                "Попробуй ещё раз:",
-                                parse_mode="HTML")
-        else:
-            await state.update_data(summ=summary)
-            await state.set_state(ProjectSubmitState.waiting_for_uniq)
-            await message.answer("7️⃣ <b>Почему проект крут (в чем его уникальность):</b>",
-                        parse_mode="HTML")
+    if error_reason:
+        await message.answer(
+            f"❗️ <b>Не могу принять ответ:</b> {error_reason}\n\nПопробуй ещё раз",
+            parse_mode="HTML")
+        return
 
-    else:
-        await message.answer("❗️ <b>Не увидел текст</b>\n\nПопробуй отправить ещё раз:",
-                            parse_mode="HTML")
+    await state.update_data(summ=clean_text)
+    await state.set_state(ProjectSubmitState.waiting_for_uniq)
+    await message.answer("7️⃣ <b>Почему проект крут или уникален:</b>",
+                parse_mode="HTML")
 
 
 @project_submit_router.message(ProjectSubmitState.waiting_for_uniq)
 async def process_uniq(message: Message, state: FSMContext, db_session: AsyncSession):
-    if message.text:
-    
-        uniq = message.text.strip()
 
-        if len(uniq) > MAX_PROJ_UNIQ_SIZE:
-            await message.answer(f"❗️ <b>Слишком много текста (максимум {MAX_PROJ_UNIQ_SIZE} симв.)</b>\n\n" \
-                                "Постарайся уложиться в короткое и емкое описание — его увидят подписчики" \
-                                "Попробуй ещё раз:",
-                                parse_mode="HTML")
-        elif len(uniq) < 15:
-            await message.answer("❗️ <b>Слишком коротко (минимум 15 символов)</b>\n\n" \
-                                "Расскажи о причине крутости проекта чуть подробнее. Не забывай: это увидят подписчики\n\n" \
-                                "Попробуй ещё раз:",
-                                parse_mode="HTML")
-        else:
+    if not message.text:
+        await message.answer(
+            "❗️ <b>Не увидел текст</b>\n\nПопробуй ввести ещё раз:",
+            parse_mode="HTML")
+        return
 
-            await state.update_data(uniq=uniq)
-            await state.set_state(ProjectSubmitState.waiting_for_check)
+    clean_text = normalize_text(message.text)
+    error_reason = validate_text(clean_text, MIN_PROJ_UNIQ_SIZE, MAX_PROJ_UNIQ_SIZE)
 
-            user_data = await state.get_data()
-            name = user_data["name"]
-            link = user_data["link"]
-            subtitle = user_data["subtitle"]
-            summ = user_data["summ"]
-            uniq = user_data["uniq"]
+    if error_reason:
+        await message.answer(
+            f"❗️ <b>Не могу принять ответ:</b> {error_reason}\n\nПопробуй ещё раз",
+            parse_mode="HTML")
+        return
 
-            await message.answer(
-                                f"Проект в батле будет выглядеть вот так:\n\n"
-                                f'🔢 <b><a href="{html.escape(link)}">{html.escape(name)} — {html.escape(subtitle)}</a></b>\n'
-                                f"<b>👉 Суть: </b>{html.escape(summ)}\n"
-                                f"<b>🔥 Почему круто: </b>{html.escape(uniq)}\n\n"
-                                f"🔍 Проверь, всё верно?",
-                                parse_mode="HTML", disable_web_page_preview=True, reply_markup=get_yes_no_keyboard())
+    await state.update_data(uniq=clean_text)
+    await state.set_state(ProjectSubmitState.waiting_for_check)
 
-    else:
-        await message.answer("❗️ <b>Не увидел текст</b>\n\nПопробуй отправить ещё раз:",
-                            parse_mode="HTML")
+    user_data = await state.get_data()
+    name = user_data["name"]
+    link = user_data["link"]
+    subtitle = user_data["subtitle"]
+    summ = user_data["summ"]
+
+    await message.answer(
+                        f"Проект в батле будет выглядеть вот так:\n\n"
+                        f'🔢 <b><a href="{html.escape(link)}">{html.escape(name)} — {html.escape(subtitle)}</a></b>\n'
+                        f"<b>👉 Суть: </b>{html.escape(summ)}\n"
+                        f"<b>🔥 Почему круто: </b>{html.escape(clean_text)}\n\n"
+                        f"🔍 Проверь, всё верно?",
+                        parse_mode="HTML", disable_web_page_preview=True, reply_markup=get_yes_no_keyboard())
 
 
 @project_submit_router.callback_query(ProjectSubmitState.waiting_for_check, F.data == "confirm_yes")
