@@ -5,10 +5,8 @@ from aiogram import Bot, Dispatcher
 from aiogram.fsm.storage.redis import RedisStorage, DefaultKeyBuilder
 from aiogram.client.session.aiohttp import AiohttpSession
 
-from shared.db.conn import init_db, async_session_maker
-from shared.db.models.base import Base
-
-from handlers.general import general_router
+from manager_bot.handlers.general import general_router
+from manager_bot.middlewares.db import DbSessionMiddleware
 
 from shared.config import config
 
@@ -16,8 +14,6 @@ from shared.config import config
 async def main():
 
     logging.basicConfig(level=logging.INFO)
-
-    # await init_db(Base)
     
     storage = RedisStorage.from_url(
         f"redis://default:{config.redis_password.get_secret_value()}@redis:6379/0",
@@ -29,6 +25,8 @@ async def main():
     session = AiohttpSession(proxy=proxy_url) if proxy_url else None
     bot = Bot(token=config.manager_bot_token.get_secret_value(), session=session)
     dp = Dispatcher(storage=storage)
+
+    dp.update.middleware(DbSessionMiddleware())
 
     dp.include_router(general_router)
 

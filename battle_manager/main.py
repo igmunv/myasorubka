@@ -1,23 +1,12 @@
 import asyncio
 
-async def periodic_task():
-    while True:
-        try:
-            # твоя логика: проверка БД, API, очереди и т.д.
-            print("Тик...")
-        except Exception as e:
-            print(f"Ошибка в задаче: {e}")
+import manager_bot.main as man_bot
 
-        await asyncio.sleep(60)  # ждём 60 секунд без нагрузки на CPU
 
-async def main():
-    task = asyncio.create_task(periodic_task())
-    try:
-        # тут запускается остальной код (например, dp.start_polling(bot))
-        await asyncio.Future()
-    finally:
-        task.cancel()
-        await asyncio.gather(task, return_exceptions=True)
+async def runner() -> None:
+    async with asyncio.TaskGroup() as tg:
+        tg.create_task(man_bot.main())
+
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    asyncio.run(runner())
