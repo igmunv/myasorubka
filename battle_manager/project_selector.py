@@ -94,7 +94,7 @@ async def select_projects(db_session: AsyncSession, all_projects: list[Project],
         by_cat.pop(latest_battle.sub_category_id, None)
 
     # Если батл был по категории
-    elif latest_battle and category and not latest_battle.sub_category_id:
+    elif latest_battle and category and not latest_battle.sub_category_id and latest_battle.category_id:
 
         # Удаляем проекты с этой категорией
         logger.info(f"delete projects by this category: {latest_battle.category_id}")
